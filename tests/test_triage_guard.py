@@ -125,14 +125,20 @@ def test_low_value_claim_with_days_left_is_not_escalated(fake_agent):
     assert out.decision.reason == "model withheld"
 
 
-def test_unquantified_value_is_treated_as_zero_and_not_escalated(fake_agent):
+def test_unquantified_value_escalates_on_imminence_alone(fake_agent):
+    """An unquantified claim is unknown, not worthless.
+
+    It used to be compared against the attention floor as though it were worth
+    zero, so a right nobody had put a number on could expire unmentioned.
+    """
     (out,) = triage(
         [make_adjudication(days_remaining=0, value_usd=None)],
         TODAY,
         model=None,
         attention_floor_usd=FLOOR,
     )
-    assert out.decision.disposition is Disposition.WITHHELD
+    assert out.decision.disposition is Disposition.SURFACED
+    assert "value unstated" in out.decision.reason
 
 
 def test_guard_leaves_an_already_surfaced_decision_alone(fake_agent):
@@ -236,10 +242,15 @@ def test_every_adjudication_is_returned_and_mutated_in_place(fake_agent):
     assert all(a.decision is not None for a in out)
 
 
-def test_a_claim_without_a_rebuttal_is_left_undecided(fake_agent):
-    """Documenting real behaviour: an un-argued live clock is neither surfaced
-    nor withheld -- it never enters `live` and no branch assigns a decision."""
+def test_a_claim_without_a_rebuttal_is_recorded_not_lost(fake_agent):
+    """An un-argued live clock must still leave triage with a disposition.
+
+    Previously it entered no bucket and vanished from the report entirely --
+    the exact failure this system exists to prevent, reproduced inside it.
+    """
     adj = make_adjudication(days_remaining=1, value_usd=9999.0, with_rebuttal=False)
     (out,) = triage([adj], TODAY, model=None, attention_floor_usd=FLOOR)
-    assert out.decision is None
+    assert out.decision is not None
+    assert out.decision.disposition is Disposition.WITHHELD
+    assert out.decision.revisit_on == out.clock.expiry_date
     assert fake_agent.constructions == 0

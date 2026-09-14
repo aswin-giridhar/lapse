@@ -171,10 +171,18 @@ def test_compute_expiry_propagates_the_negative_business_window_error():
         compute_expiry(date(2026, 9, 14), -1, business_days=True)
 
 
-def test_compute_expiry_calendar_path_accepts_a_negative_window():
-    """Documenting asymmetric behaviour rather than endorsing it: the calendar
-    path silently returns a date in the past where the business path raises."""
-    assert compute_expiry(date(2026, 9, 14), -1, business_days=False) == date(2026, 9, 13)
+def test_compute_expiry_rejects_a_negative_window_on_both_paths():
+    """Both paths now refuse a backwards window.
+
+    The calendar path used to return a date in the past, which would present a
+    fabricated deadline as an already-lapsed one -- a silent wrong answer where
+    the business path raised loudly. Symmetry here is a correctness property,
+    not tidiness.
+    """
+    with pytest.raises(ValueError):
+        compute_expiry(date(2026, 9, 14), -1, business_days=False)
+    with pytest.raises(ValueError):
+        compute_expiry(date(2026, 9, 14), -1, business_days=True)
 
 
 # --------------------------------------------------------------------------

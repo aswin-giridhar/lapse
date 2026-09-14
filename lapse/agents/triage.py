@@ -81,7 +81,7 @@ def triage(
             )
 
     if not live:
-        return adjudications
+        return _decide_the_undecided(adjudications)
 
     docket = "\n\n".join(
         f"[{i}] {a.clock.finding.right_summary}\n"
@@ -128,18 +128,44 @@ def triage(
     # Deterministic guard on the join. The model decides what deserves
     # attention; it does not get to let a valuable right expire this week.
     for a in live:
-        value = a.clock.finding.value_usd or 0.0
+        value = a.clock.finding.value_usd
+        # An unquantified claim is unknown, not worthless. It escalates on
+        # imminence alone, because the alternative is that a right nobody put
+        # a number on expires unmentioned.
+        qualifies = value is None or value >= attention_floor_usd
         if (
             a.clock.days_remaining <= 3
-            and value >= attention_floor_usd
+            and qualifies
             and a.decision is not None
             and a.decision.disposition is not Disposition.SURFACED
         ):
             a.decision = Decision(
                 disposition=Disposition.SURFACED,
                 reason=(
-                    f"Escalated by policy: ${value:,.0f} at stake and only "
-                    f"{a.clock.days_remaining} days remain."
+                    f"Escalated by policy: "
+                    f"{f'${value:,.0f} at stake' if value is not None else 'value unstated'}"
+                    f" and only {a.clock.days_remaining} days remain."
                 ),
+            )
+    return _decide_the_undecided(adjudications)
+
+
+def _decide_the_undecided(adjudications: list[Adjudication]) -> list[Adjudication]:
+    """No clock may leave triage without a disposition.
+
+    An adjudication with `decision is None` falls out of every bucket in the
+    report and vanishes without trace -- which is precisely the failure this
+    whole system exists to prevent, reproduced inside it. Called at every exit
+    from triage, not just the last one.
+    """
+    for a in adjudications:
+        if a.decision is None:
+            a.decision = Decision(
+                disposition=Disposition.WITHHELD,
+                reason=(
+                    "No disposition was reached for this clock; withheld so it "
+                    "is recorded rather than lost."
+                ),
+                revisit_on=a.clock.expiry_date,
             )
     return adjudications

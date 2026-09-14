@@ -38,7 +38,14 @@ def is_business_day(day: date) -> bool:
 
 
 def add_calendar_days(start: date, days: int) -> date:
-    """Add calendar days. Day 0 is the trigger date itself."""
+    """Add calendar days. Day 0 is the trigger date itself.
+
+    Rejects negative windows for the same reason the business-day variant
+    does: a window cannot run backwards, and silently returning a date in the
+    past would present a fabricated deadline as though it had lapsed.
+    """
+    if days < 0:
+        raise ValueError("calendar-day windows must be non-negative")
     return start + timedelta(days=days)
 
 
