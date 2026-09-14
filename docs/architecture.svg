@@ -57,7 +57,7 @@
   <text x="295" y="554" font-size="13.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">3 · CHALLENGE — Strands Agent, ISOLATED CONTEXT</text>
   <text x="295" y="574" font-size="12.5" fill="#4a1d05" text-anchor="middle">Counsel for the counterparty. Objective: defeat this claim.</text>
   <text x="295" y="592" font-size="12.5" fill="#4a1d05" text-anchor="middle">Fresh Agent per clock; never sees the advocate's reasoning.</text>
-  <text x="295" y="610" font-size="12.5" fill="#4a1d05" text-anchor="middle">Tools: the three reference-reading tools only.</text>
+  <text x="295" y="610" font-size="12.5" fill="#4a1d05" text-anchor="middle">Tools: reference reading, plus the date tool so a</text>
 
   <line x1="295" y1="630" x2="295" y2="660" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
   <text x="305" y="650" font-size="12" font-style="italic" fill="#1e293b">Challenge</text>
@@ -135,7 +135,7 @@
   <text x="580" y="346" font-size="12.5" fill="#334155">compute_window_expiry  ·  list_clock_types  ·  lookup_clock_type</text>
   <text x="580" y="364" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
 
-  <text x="580" y="394" font-size="12.5" font-weight="bold" fill="#c2410c">ARGUMENT_TOOLS — CHALLENGE and REBUT (3)</text>
+  <text x="580" y="394" font-size="12.5" font-weight="bold" fill="#c2410c">ARGUMENT_TOOLS — CHALLENGE and REBUT (4)</text>
   <text x="580" y="414" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
 
   <text x="580" y="444" font-size="12.5" font-weight="bold" fill="#c2410c">TRIAGE — none</text>
@@ -183,8 +183,8 @@
   <text x="580" y="1046" font-size="12" fill="#334155">4.  The escalation guard overrides the model, but only upward, only for live claims,</text>
   <text x="580" y="1064" font-size="12" fill="#334155">     and only where value_usd was actually quantified.</text>
 
-  <text x="580" y="1090" font-size="12" fill="#334155">5.  The interruption budget is stated to the model, not enforced in Python — and</text>
-  <text x="580" y="1108" font-size="12" fill="#334155">     the guard can surface more than the budget. Stated plainly rather than implied.</text>
+  <text x="580" y="1090" font-size="12" fill="#334155">5.  The interruption budget is enforced in Python after the model rules, though</text>
+  <text x="580" y="1108" font-size="12" fill="#334155">     the escalation guard may still exceed it for a right expiring this week.</text>
 
   <text x="560" y="1162" font-size="11.5" fill="#94a3b8">lapse watch --today 2026-09-14 --budget 1 --attention-floor 100      ·      docs/ARCHITECTURE.md</text>
 </svg>
