@@ -195,6 +195,29 @@ export AWS_REGION=us-west-2
 | `--json PATH` | write the full adjudication record, including every argument, to a file |
 | `--quiet` | hide the per-stage progress trace |
 
+### Memory between runs
+
+Lapse remembers what it has already raised and what you decided about it:
+
+```bash
+.venv/bin/python -m lapse.cli ledger              # what it is carrying
+.venv/bin/python -m lapse.cli snooze a1b2c3 --days 3
+.venv/bin/python -m lapse.cli dismiss a1b2c3 --note "already handled by phone"
+.venv/bin/python -m lapse.cli acted a1b2c3
+```
+
+Each clock gets a stable id, shown in the `watch` table. Muting is checked
+*before* the argument stages, so a dismissed clock costs no model calls —
+re-litigating a dismissal is the fastest way to teach someone to ignore you.
+
+A clock's identity is keyed on the document, the kind of right and the trigger
+date, deliberately **not** on the model-written summary. Keying on generated
+text would make every run invent new clocks and re-raise everything you had
+already dealt with.
+
+Use `--forget` for a clean demonstration run that neither reads nor writes
+your real history.
+
 Run the tests — all offline, no model calls:
 
 ```bash
@@ -226,6 +249,9 @@ These are real, and worth stating plainly rather than discovering in the demo.
 - **Jurisdiction is not modelled.** `habitability_repair_notice` carries a 14-day default that is
   correct in some states and wrong in others. The registry flags this
   (`jurisdiction_dependent=True`) but does not yet resolve it.
+- **The ledger is a local JSON file.** Fine for one person on one machine;
+  a real deployment wants durable, encrypted, multi-device storage, and the
+  documents it reasons over are among the most sensitive a person has.
 - **Document ingestion is a directory read.** Wiring a real mailbox is straightforward and is the
   obvious next step; it is deliberately not in the demo path, because a live connector is a fragile
   dependency in a recorded run.
