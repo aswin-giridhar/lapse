@@ -32,6 +32,23 @@ protection lapses. Your landlord's management company knows what the statutory r
 was, and that you didn't act on it. There is no corresponding system on your side, and the default
 outcome of that mismatch is that you lose — quietly, repeatedly, in small amounts.
 
+## The number this is built on
+
+| | denied | appealed | overturned |
+|---|---|---|---|
+| HealthCare.gov marketplace, 2024 | ~85,000,000 claims (19% denial rate) | **262,982 — under 1%** | 34% |
+| Medicare Advantage prior auth, 2024 | — | **11.5%** | **80.7%** |
+
+Source: [KFF, 2024](https://www.kff.org/patient-consumer-protections/claims-denials-and-appeals-in-aca-marketplace-plans-in-2024/)
+and [KFF prior-authorization metrics](https://www.kff.org/patient-consumer-protections/prior-authorization-metrics-provide-new-insights-into-insurer-practices-but-gaps-remain/).
+
+**Four out of five appealed prior-authorization denials are reversed — and almost nine in ten are
+never appealed.** A denial that would be overturned on request stands permanently because nobody
+asked.
+
+That gap is not a legal problem and not a merits problem. It is a **noticing** problem, which is
+the only kind of problem an agent that reads your documents can actually solve.
+
 ## The insight
 
 These look like six unrelated problems living in six different apps. Structurally they are **one
@@ -276,6 +293,23 @@ These are real, and worth stating plainly rather than discovering in the demo.
   chargeback deadlines vary by jurisdiction, plan and card network. Ten clock types with
   carefully-scoped authorities is honest as a demonstration; it is not coverage, and the gap between
   this and something you'd trust with a real denial is larger than a demo makes it look.
+- **Drafting is where the legal risk lives, not detecting.** *Nippon Life v. OpenAI*
+  (N.D. Ill., 2026) pleads unauthorised practice of law against an AI system for
+  autonomous document *drafting* — a closer analogue to Lapse's mechanism than the
+  DoNotPay action, which was a deception case rather than a UPL one. And with
+  *Upsolve v. James* vacated and cert denied in March 2026, the First Amendment
+  route is currently closed. The defensible line is to **surface the deadline and
+  leave the drafting to the user** in eviction, debt-collection and court-answer
+  territory, even though the same pipeline could draft there.
+- **A reminder can itself cause the loss.** FCBA, Reg E and several immigration
+  deadlines require *arrival* at the counterparty, not sending by you. A system that
+  surfaces "3 days left" for an arrival-anchored right is quietly advising someone
+  into a missed deadline. Those clocks need a **mail-by** date, and the registry does
+  not yet distinguish the two.
+- **Never tell someone a claim is dead.** Government-claim notice periods look
+  jurisdictional and often are not — *Kwai Fun Wong* holds FTCA deadlines tollable,
+  and California has a late-claim rescue chain. A lapsed clock should read as "this
+  looks closed, and here is who to ask", never as a closed door.
 - **This is not legal advice**, and the tenancy and insurance-appeal paths sit close to it. Lapse is
   built to hand you a deadline and a draft, never to act for you: nothing is ever sent without an
   explicit human approval, by design and not as a limitation.
