@@ -29,8 +29,10 @@ from lapse.models import (
     ClockFinding,
     ClockStatus,
     DatedClock,
+    Decision,
     Disposition,
 )
+from lapse.ledger import Ledger, clock_identity
 from lapse.providers import active_provider, build_model
 
 
@@ -53,6 +55,11 @@ class RunReport:
     today: str
     provider: str
     adjudications: list[Adjudication] = field(default_factory=list)
+    new_clock_ids: set[str] = field(default_factory=set)
+    muted_count: int = 0
+
+    def is_new(self, adj: Adjudication) -> bool:
+        return clock_identity(adj) in self.new_clock_ids
 
     @property
     def surfaced(self) -> list[Adjudication]:
@@ -81,6 +88,7 @@ def quiet_run(
     budget: int = 1,
     attention_floor_usd: float = 100.0,
     on_event: Callable[[str, str], None] | None = None,
+    ledger: Ledger | None = None,
 ) -> RunReport:
     """Run the full pipeline over the inbox.
 
@@ -128,9 +136,27 @@ def quiet_run(
     # Only live clocks are worth arguing about. A lapsed one is a fact, not a
     # dispute -- and spending model calls on it would be spending them on
     # something no answer can change.
+    ledger = ledger if ledger is not None else Ledger()
+    muted = 0
+
     for adj in adjudications:
         if adj.clock.status is ClockStatus.LAPSED:
             continue
+        # Respect what the user already decided, BEFORE spending model calls
+        # arguing about it. Re-litigating a dismissal is the fastest way to
+        # teach someone to ignore you.
+        prior = ledger.entries.get(clock_identity(adj))
+        if prior is not None:
+            is_muted, why = prior.is_muted_on(today)
+            if is_muted:
+                adj.decision = Decision(
+                    disposition=Disposition.WITHHELD,
+                    reason=why,
+                    revisit_on=prior.snoozed_until,
+                )
+                muted += 1
+                emit("muted", f"{adj.clock.finding.right_summary} -- {why}")
+                continue
         emit("challenge", adj.clock.finding.right_summary)
         source = source_by_clock.get(id(adj), "")
         adj.challenge = challenge_clock(adj.clock, argue_model, source)
@@ -181,8 +207,18 @@ def quiet_run(
         adjudications, today, detect_model, budget=budget, attention_floor_usd=attention_floor_usd
     )
 
+    new_ids: set[str] = set()
+    for adj in adjudications:
+        entry, is_new = ledger.record(adj, today)
+        if is_new:
+            new_ids.add(entry.clock_id)
+    ledger.save()
+    emit("ledger", f"{len(new_ids)} new, {len(adjudications) - len(new_ids)} already known")
+
     return RunReport(
         today=today,
         provider=f"{provider.name} / {provider.model_id}",
         adjudications=adjudications,
+        new_clock_ids=new_ids,
+        muted_count=muted,
     )
