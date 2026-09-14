@@ -32,8 +32,10 @@ flowchart TD
     BEDROCK -. "credentials genuinely absent" .-> FALL
     BEDROCK -. "serves every model step below" .-> DETECT
 
-    INBOX --> DETECT
-    DETECT["1 · DETECT — Strands Agent, per document<br/>which clock did this open, and when?<br/>6 tools · fresh Agent per document"]
+    INBOX --> POOL
+    POOL{{"Thread pool — documents are independent<br/>detection and argument run in parallel<br/>120s → 66s over six documents"}}
+    POOL --> DETECT
+    DETECT["1 · DETECT — Strands Agent, per document<br/>which clock did this open, and when?<br/>6 tools · fresh Agent per document<br/>temperature 0 — but NOT deterministic"]
     DETECT -- "ClockFindings — 0..N ClockFinding" --> DATE
 
     DATE{{"2 · DATE — pure Python, no model<br/>date_the_clock → compute_expiry, days_remaining"}}
@@ -43,10 +45,13 @@ flowchart TD
     GATE -- "no — already lapsed" --> TPRE
     GATE -- "yes" --> CHAL
 
-    CHAL["3 · CHALLENGE — Strands Agent, ISOLATED<br/>counsel for the counterparty: defeat this claim<br/>3 reference tools · fresh Agent per clock"]
-    CHAL -- "Challenge" --> REBUT
+    CHAL["3 · CHALLENGE — Strands Agent, ISOLATED<br/>counsel for the counterparty: defeat this claim<br/>receives the document THEIR side issued<br/>4 tools · fresh Agent per clock"]
+    CHAL -- "Challenge" --> VOID
 
-    REBUT["4 · REBUT — Strands Agent<br/>answer it or concede it, and draft what to send<br/>3 reference tools · fresh Agent per clock"]
+    VOID{{"Python — timeliness override<br/>an argument that the window has run,<br/>against a window computed as LIVE, is void<br/>other grounds in the same challenge survive"}}
+    VOID -- "Challenge" --> REBUT
+
+    REBUT["4 · REBUT — Strands Agent<br/>answer it or concede it, and draft what to send<br/>4 tools · fresh Agent per clock"]
     REBUT -- "Rebuttal" --> TPRE
 
     subgraph TRIAGE["5 · TRIAGE — the whole surviving docket at once"]
@@ -58,6 +63,11 @@ flowchart TD
 
     TGUARD --> OUT1
     TPRE --> OUT4
+    TGUARD --> LEDGER
+
+    LEDGER{{"lapse/ledger.py — memory between runs<br/>identity = counterparty + kind + trigger + window<br/>dismiss / snooze / acted are checked BEFORE<br/>any model call, so a muted clock costs nothing"}}
+    LEDGER --> TELEM
+    TELEM{{"lapse/telemetry.py — show the work<br/>per-agent token deltas, tool-call counts, cost"}}
 
     OUT1["SURFACED<br/>reaches the human, with a draft"]
     OUT2["WITHHELD<br/>real, not worth an interruption yet"]
@@ -136,7 +146,7 @@ the user is recomputed here, outside the model, from the finding's own fields.
 |---|---|
 | Receives | `DatedClock` (the claim as asserted) |
 | Returns | `Challenge` — `defeats_claim`, `argument`, `authority`, `confidence` |
-| Tools | 3 (`ARGUMENT_TOOLS`: list / read / search reference documents) |
+| Tools | 4 (`ARGUMENT_TOOLS`: compute_window_expiry + list / read / search reference documents) |
 | Agent | Fresh `Agent` per clock |
 
 Works for the other side: the insurer, the client, the landlord, the retailer. It is told to defeat
@@ -160,7 +170,7 @@ and model calls spent on it buy nothing.
 |---|---|
 | Receives | `DatedClock` + `Challenge` |
 | Returns | `Rebuttal` — `survives`, `answer`, `authority`, `drafted_action` |
-| Tools | 3 (`ARGUMENT_TOOLS`) |
+| Tools | 4 (`ARGUMENT_TOOLS`) |
 | Agent | Fresh `Agent` per clock |
 
 Answers the counterparty's argument or concedes it, and where it answers, drafts the actual letter,
@@ -271,3 +281,60 @@ AWS-native system that never touched AWS.
 lapse doctor                    # which provider would serve a run, and why
 lapse watch --today 2026-09-14 --budget 1 --attention-floor 100 --json run.json
 ```
+
+---
+
+## Cross-run memory — `lapse/ledger.py`
+
+A background agent that forgets between runs cannot keep its own promises:
+`revisit_on` is a field nobody reads and "remind me in 3 days" is a button with
+nothing behind it.
+
+A clock's identity is `counterparty | clock_kind | trigger_date | window_days`.
+Deliberately **not** `doc_id` or the summary text — both are model-generated, so
+keying on either would defeat the case this exists for (the same denial arriving
+twice as two files) and would silently forget the user's dismissals whenever the
+generated text drifted.
+
+Muting is checked **before** the argument stages, so a dismissed clock costs zero
+model calls. Re-litigating a dismissal is the fastest way to teach someone to
+ignore you.
+
+A corrupt or schema-drifted ledger raises `LedgerUnreadable` rather than starting
+empty. Silently forgetting every decision and re-raising all of it is precisely
+the false report this system exists to avoid.
+
+## Telemetry — `lapse/telemetry.py`
+
+Strands already collects per-invocation tokens and tool-use records and throws
+them away. A run now ends with its own trace:
+
+```
+19 model invocations across 19 isolated agents · 186,179 in / 9,625 out · $0.180
+tools called: list_reference_documents×13, read_reference_document×12,
+              compute_window_expiry×10, search_reference_documents×8, ...
+```
+
+The 1:1 agent-to-invocation ratio is itself evidence that the isolation this
+design claims is real, and the tool counts show the agent genuinely reads the
+governing instruments rather than reasoning from the incoming document alone.
+
+**One trap worth recording:** `accumulated_usage` is cumulative *per agent*, so
+summing it across invocations double-counts any agent called twice. The collector
+records deltas and holds a strong reference to each agent, because `id()` is
+recycled after garbage collection — keying on it produced a completely plausible
+and completely wrong token count during development.
+
+## Concurrency
+
+Documents are independent, so detection and the argument stage run in a thread
+pool (`max_workers=8`). Six documents: **120s → 66s**. Each stage still builds a
+fresh `Agent`, so parallelism does not weaken the isolation.
+
+## What this diagram does not claim
+
+Detection runs at `temperature=0.0`, and that is **not** determinism. Measured
+over six runs of the identical corpus it returned **4, 5, 5, 5, 6 and 6** clocks.
+Temperature constrains sampling, not tool-use paths or structured-output retries.
+Detection recall is the central open problem, and it is the first thing an eval
+harness should measure.

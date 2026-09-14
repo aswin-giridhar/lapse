@@ -180,6 +180,27 @@ plausible wrong deadline produces calm inaction right up until the right is gone
 does not get to let a valuable right expire this week — any surviving claim above the attention
 floor with ≤3 days remaining is escalated by Python, whatever the model concluded.
 
+**It shows its work.** Every run ends with its own trace — how many model
+invocations, across how many isolated agents, which tools were called how many
+times, and what it cost:
+
+```
+6 clocks examined  ·  1 surfaced  ·  0 muted by you  ·  served by bedrock / us.amazon.nova-pro-v1:0
+19 model invocations across 19 isolated agents  ·  186,179 in / 9,625 out tokens  ·  $0.180
+tools called: list_reference_documents×13, read_reference_document×12,
+              compute_window_expiry×10, search_reference_documents×8, list_clock_types×6
+```
+
+That 1:1 agent-to-invocation ratio is evidence the isolation above is real, and
+the tool counts show the agent actually opens the governing instruments rather
+than reasoning from the incoming document alone. A user being asked to trust a
+silence should be able to see that the agent looked.
+
+**Documents are examined in parallel.** They are independent, so detection and
+the argument stage run in a thread pool: **120s → 66s** over the six-document
+corpus. Each stage still constructs a fresh `Agent`, so concurrency does not
+weaken the isolation.
+
 **`doctor` makes a real call.** Having credentials is not the same as being able to infer —
 Bedrock will hand you a perfectly good client for a model your account cannot serve. `doctor`
 therefore issues an actual one-token request, because a probe that cannot fail is not measuring
