@@ -55,8 +55,14 @@ METHOD, in order:
    the right is gone.
 5. Call compute_window_expiry to check the arithmetic. Never compute a date
    yourself.
-6. Estimate what acting is worth in dollars where the document supports a
-   figure, and state the basis. If it is not quantifiable, say why.
+6. Set value_usd to what the holder RECOVERS OR AVOIDS by acting. If the
+   document states a figure the holder would otherwise pay or lose -- a
+   member responsibility, a balance owed, a price difference, a rebate
+   amount, a rate times hours -- you MUST use it. Do not leave value_usd
+   null when the document contains the number; an unquantified claim is
+   treated as low-priority and will be withheld, so a missing figure here
+   silently buries a valuable right. Leave it null ONLY when no figure
+   exists anywhere, and then say so in value_basis.
 
 Before concluding that a document opened no clock, you MUST have called
 list_reference_documents and considered whether a governing instrument on

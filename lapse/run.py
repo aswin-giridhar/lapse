@@ -96,7 +96,13 @@ def quiet_run(
     docs = list(documents) if documents is not None else load_inbox()
     emit = on_event or (lambda stage, msg: None)
 
-    model = build_model()
+    # Detection is an extraction task and wants determinism: the same document
+    # must not yield a clock on one run and nothing on the next, or the user
+    # cannot trust the silence. Argument is a generation task and is allowed a
+    # little more room.
+    detect_model = build_model(temperature=0.0)
+    argue_model = build_model(temperature=0.3)
+    model = argue_model
     provider = active_provider()
     emit("provider", f"{provider.name} / {provider.model_id} ({provider.detail})")
 
@@ -105,7 +111,7 @@ def quiet_run(
 
     for doc in docs:
         emit("detect", doc.doc_id)
-        found = detect_clocks(doc, today, model)
+        found = detect_clocks(doc, today, detect_model)
         if not found.findings:
             emit("detect.none", f"{doc.doc_id}: {found.no_clock_reason}")
             continue
@@ -127,7 +133,7 @@ def quiet_run(
             continue
         emit("challenge", adj.clock.finding.right_summary)
         source = source_by_clock.get(id(adj), "")
-        adj.challenge = challenge_clock(adj.clock, model, source)
+        adj.challenge = challenge_clock(adj.clock, argue_model, source)
 
         # A deterministic override on the newest and least-defended path.
         # Timeliness is not a matter of opinion here: Python already computed
@@ -163,7 +169,7 @@ def quiet_run(
             f"({adj.challenge.confidence}): {adj.challenge.argument[:120]}",
         )
         emit("rebut", adj.clock.finding.right_summary)
-        adj.rebuttal = rebut_challenge(adj.clock, adj.challenge, model, source)
+        adj.rebuttal = rebut_challenge(adj.clock, adj.challenge, argue_model, source)
         emit(
             "rebut.result",
             f"{'holds' if adj.rebuttal.survives else 'conceded'}: "
@@ -172,7 +178,7 @@ def quiet_run(
 
     emit("triage", f"{len(adjudications)} clocks, budget {budget}")
     adjudications = triage(
-        adjudications, today, model, budget=budget, attention_floor_usd=attention_floor_usd
+        adjudications, today, detect_model, budget=budget, attention_floor_usd=attention_floor_usd
     )
 
     return RunReport(

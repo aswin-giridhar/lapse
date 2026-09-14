@@ -28,6 +28,9 @@ Surface an item only when ALL of these hold:
 - The value at stake exceeds the cost of the interruption itself. Their
   attention has a price. A claim worth less than a few minutes of it should
   be handled silently or not at all, however easy it would be to mention.
+  A claim marked "unquantified" is NOT a claim worth nothing -- it is one
+  whose value was not stated. Judge it on consequence instead, and never
+  withhold it merely for lacking a number.
 - The timing is right NOW. A real claim with three months of runway is not
   urgent; withhold it and set revisit_on so it returns when it matters.
 
