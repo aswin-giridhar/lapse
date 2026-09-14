@@ -324,16 +324,38 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     """Report exactly which provider would serve a run, and why."""
     console.print()
     try:
-        build_model()
+        model = build_model()
         info = active_provider()
         console.print(Text("  provider  ", style="dim") + Text(info.name, style="bold green"))
         console.print(Text("  model     ", style="dim") + Text(info.model_id))
         console.print(Text("  detail    ", style="dim") + Text(info.detail, style="dim"))
         if info.name != "bedrock":
             console.print()
+            console.print(Text("  This run would NOT use Amazon Bedrock.", style="bold yellow"))
+
+        # Having credentials is not the same as being able to infer. Bedrock
+        # will hand you a perfectly good client for a model your account may
+        # not serve, so the only honest check is to actually call it.
+        from strands import Agent
+
+        try:
+            Agent(model=model, callback_handler=None)("Reply with the single word: ready")
+        except Exception as exc:  # noqa: BLE001 - reported in full, not swallowed
+            console.print()
             console.print(
-                Text("  This run would NOT use Amazon Bedrock.", style="bold yellow")
+                Panel(
+                    Text(
+                        "Credentials resolve, but the model refused a real "
+                        f"request:\n\n{type(exc).__name__}: {exc}",
+                        style="red",
+                    ),
+                    title="[red]provider is NOT usable[/red]",
+                    border_style="red",
+                )
             )
+            return 2
+        console.print()
+        console.print(Text("  inference ", style="dim") + Text("verified with a live call", style="bold green"))
         return 0
     except ProviderUnavailable as exc:
         console.print(Panel(Text(str(exc), style="red"), border_style="red"))

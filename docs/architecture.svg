@@ -120,7 +120,7 @@
 
   <rect x="580" y="132" width="560" height="46" rx="7" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
   <text x="596" y="152" font-size="12.5" font-weight="bold" fill="#1e293b">Amazon Bedrock — primary</text>
-  <text x="596" y="170" font-size="12.5" fill="#334155">global.anthropic.claude-sonnet-4-6  ·  us-west-2  ·  bearer token or boto3 creds</text>
+  <text x="596" y="170" font-size="12.5" fill="#334155">us.amazon.nova-pro-v1:0  ·  us-west-2  ·  bearer token or boto3 creds</text>
 
   <text x="596" y="197" font-size="12" fill="#475569">only when AWS credentials are genuinely absent — and it says so on stderr</text>
 

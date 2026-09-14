@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 
 from lapse.dates import (
-    _HOLIDAYS_2026,
+    federal_holidays,
     add_business_days,
     add_calendar_days,
     compute_expiry,
@@ -55,11 +55,11 @@ def test_weekend_is_not_a_business_day():
 def test_labor_day_2026_is_a_monday_and_is_not_a_business_day():
     labor_day = date(2026, 9, 7)
     assert labor_day.weekday() == 0, "Labor Day 2026 must be a Monday for this test to bite"
-    assert labor_day in _HOLIDAYS_2026
+    assert labor_day in federal_holidays(2026)
     assert not is_business_day(labor_day)
 
 
-@pytest.mark.parametrize("holiday", sorted(_HOLIDAYS_2026))
+@pytest.mark.parametrize("holiday", sorted(federal_holidays(2026)))
 def test_every_registered_holiday_is_not_a_business_day(holiday):
     assert not is_business_day(holiday)
 
@@ -103,7 +103,7 @@ def test_crossing_labor_day_skips_the_holiday():
 
     This assertion is discriminating: with weekends skipped but holidays
     ignored the answer would be Monday 2026-09-07 (Labor Day). If
-    _HOLIDAYS_2026 were emptied, this test goes red.
+    federal_holidays() stopped returning the holiday set, this test goes red.
     """
     friday = date(2026, 9, 4)
     assert friday.weekday() == 4
@@ -240,3 +240,23 @@ def test_the_other_four_corpus_scenarios_are_live():
     for label, trigger, window, business, _expiry, _left in CORPUS_SCENARIOS[:-1]:
         expiry = compute_expiry(parse_date(trigger), window, business)
         assert days_remaining(expiry, TODAY) >= 0, label
+
+
+def test_holidays_are_computed_for_any_year_not_just_2026():
+    """The holiday set used to be a hard-coded 2026 list.
+
+    A ten-business-day window opened in late December therefore counted New
+    Year's Day as a working day and produced a deadline one day early --
+    silently, which is the exact class of failure this module exists to stop.
+    """
+    assert not is_business_day(date(2027, 1, 1))
+    assert not is_business_day(date(2028, 7, 4))
+    assert not is_business_day(date(2030, 12, 25))
+    # Crossing Christmas and New Year from 2026 into 2027.
+    assert compute_expiry(date(2026, 12, 21), 10, business_days=True) == date(2027, 1, 6)
+
+
+def test_weekend_holidays_are_observed_on_an_adjacent_weekday():
+    """2027-07-04 falls on a Sunday, so the holiday is observed on the 5th."""
+    assert date(2027, 7, 5) in federal_holidays(2027)
+    assert not is_business_day(date(2027, 7, 5))

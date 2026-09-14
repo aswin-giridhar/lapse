@@ -139,12 +139,17 @@ def test_search_is_case_insensitive():
     )
 
 
-def test_search_returns_one_excerpt_per_document():
-    out = search_reference_documents("the")
-    doc_ids = [d for d in reference_index() if f"--- {d} ---" in out]
-    for doc_id in doc_ids:
-        assert out.count(f"--- {doc_id} ---") == 1
+def test_search_returns_up_to_three_excerpts_per_document():
+    """Retrieval must not stop at the first mention.
 
+    It used to return a single excerpt per document, which meant the clause
+    that actually governs was routinely invisible -- the first occurrence of a
+    term is usually a heading or a cross-reference, not the operative text.
+    """
+    out = search_reference_documents("section")
+    for doc_id in {line.strip("- ") for line in out.splitlines() if line.startswith("---")}:
+        assert out.count(f"--- {doc_id} ---") <= 3
+    assert out.count("---") >= 1
 
 def test_search_reports_a_miss_rather_than_raising():
     out = search_reference_documents("zzzz_no_such_phrase_zzzz")

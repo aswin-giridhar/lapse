@@ -12,7 +12,11 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-DEFAULT_BEDROCK_MODEL = "global.anthropic.claude-sonnet-4-6"
+# Amazon's own model, chosen because it needs no per-provider use-case form and
+# therefore works on a fresh AWS account. Anthropic models on Bedrock require an
+# approval step, so defaulting to one would mean this project does not run for
+# someone who just cloned it. Override with LAPSE_BEDROCK_MODEL.
+DEFAULT_BEDROCK_MODEL = "us.amazon.nova-pro-v1:0"
 DEFAULT_REGION = os.environ.get("AWS_REGION", "us-west-2")
 
 

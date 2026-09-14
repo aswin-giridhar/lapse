@@ -11,7 +11,7 @@ from datetime import date
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ClockStatus(str, Enum):
@@ -50,6 +50,33 @@ class ClockFinding(BaseModel):
     value_basis: str = Field(
         default="", description="How value_usd was arrived at, or why it is unquantifiable"
     )
+
+
+    @field_validator("trigger_date")
+    @classmethod
+    def _iso_date(cls, v: str) -> str:
+        """Reject anything that is not a real ISO date.
+
+        A model that answers "2026-03" or "unknown" here used to raise out of
+        the dating step and take the entire run down with it -- one malformed
+        field losing every other document's findings.
+        """
+        from datetime import date as _d
+
+        try:
+            _d.fromisoformat(v.strip())
+        except (ValueError, AttributeError) as exc:
+            raise ValueError(
+                f"trigger_date must be an ISO date (YYYY-MM-DD), got {v!r}"
+            ) from exc
+        return v.strip()
+
+    @field_validator("window_days")
+    @classmethod
+    def _sane_window(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("window_days cannot be negative")
+        return v
 
 
 class DatedClock(BaseModel):

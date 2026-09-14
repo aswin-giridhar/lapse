@@ -26,7 +26,7 @@ flowchart TD
     end
 
     subgraph PROV["Model provider — lapse/providers.py"]
-        BEDROCK["Amazon Bedrock (primary)<br/>global.anthropic.claude-sonnet-4-6 · us-west-2"]
+        BEDROCK["Amazon Bedrock (primary)<br/>us.amazon.nova-pro-v1:0 · us-west-2"]
         FALL["LiteLLM (fallback only)<br/>selected loudly on stderr, never silently"]
     end
     BEDROCK -. "credentials genuinely absent" .-> FALL
@@ -245,7 +245,7 @@ conversation state within the triage stage — which is intended, since its whol
 
 ### Provider — `lapse/providers.py`
 
-Amazon Bedrock is the intended home: `global.anthropic.claude-sonnet-4-6` in `us-west-2`, via
+Amazon Bedrock is the intended home: `us.amazon.nova-pro-v1:0` in `us-west-2`, via
 either `AWS_BEARER_TOKEN_BEDROCK` or standard boto3 credentials. `LAPSE_PROVIDER=bedrock` makes
 Bedrock mandatory and raises `ProviderUnavailable` rather than degrading. In automatic mode, a
 missing credential falls back to LiteLLM — but prints

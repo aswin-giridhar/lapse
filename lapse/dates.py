@@ -10,21 +10,49 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-# US federal holidays that fall inside the demo window. A production build
-# would use a holiday calendar library and a jurisdiction; hard-coding the
-# relevant set keeps the arithmetic auditable for the dates we actually use.
-_HOLIDAYS_2026 = {
-    date(2026, 1, 1),    # New Year's Day
-    date(2026, 1, 19),   # MLK Day
-    date(2026, 2, 16),   # Presidents' Day
-    date(2026, 5, 25),   # Memorial Day
-    date(2026, 6, 19),   # Juneteenth
-    date(2026, 7, 3),    # Independence Day (observed)
-    date(2026, 9, 7),    # Labor Day
-    date(2026, 11, 11),  # Veterans Day
-    date(2026, 11, 26),  # Thanksgiving
-    date(2026, 12, 25),  # Christmas
-}
+# US federal holidays, computed for any year rather than listed for one.
+# The previous version listed 2026 only, so a ten-business-day window opened in
+# late December counted New Year's Day as a working day -- a wrong deadline
+# produced silently, which is the specific failure this module exists to
+# prevent. A production build wants a holiday library and a jurisdiction.
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    """The nth given weekday of a month (n=-1 for the last)."""
+    if n > 0:
+        d = date(year, month, 1)
+        offset = (weekday - d.weekday()) % 7
+        return d + timedelta(days=offset + 7 * (n - 1))
+    nxt = date(year + (month == 12), (month % 12) + 1, 1)
+    d = nxt - timedelta(days=1)
+    return d - timedelta(days=(d.weekday() - weekday) % 7)
+
+
+def _observed(day: date) -> date:
+    """Federal holidays falling at a weekend are observed on an adjacent day."""
+    if day.weekday() == 5:
+        return day - timedelta(days=1)
+    if day.weekday() == 6:
+        return day + timedelta(days=1)
+    return day
+
+
+def federal_holidays(year: int) -> set[date]:
+    """US federal holidays for any year, with weekend observation applied."""
+    return {
+        _observed(date(year, 1, 1)),                    # New Year's Day
+        _nth_weekday(year, 1, 0, 3),                    # MLK Day
+        _nth_weekday(year, 2, 0, 3),                    # Presidents' Day
+        _nth_weekday(year, 5, 0, -1),                   # Memorial Day
+        _observed(date(year, 6, 19)),                   # Juneteenth
+        _observed(date(year, 7, 4)),                    # Independence Day
+        _nth_weekday(year, 9, 0, 1),                    # Labor Day
+        _nth_weekday(year, 10, 0, 2),                   # Columbus Day
+        _observed(date(year, 11, 11)),                  # Veterans Day
+        _nth_weekday(year, 11, 3, 4),                   # Thanksgiving
+        _observed(date(year, 12, 25)),                  # Christmas
+    }
+
 
 
 def parse_date(value: str) -> date:
@@ -33,8 +61,8 @@ def parse_date(value: str) -> date:
 
 
 def is_business_day(day: date) -> bool:
-    """True if `day` is a weekday and not a recognised federal holiday."""
-    return day.weekday() < 5 and day not in _HOLIDAYS_2026
+    """True if `day` is a weekday and not a US federal holiday, in any year."""
+    return day.weekday() < 5 and day not in federal_holidays(day.year)
 
 
 def add_calendar_days(start: date, days: int) -> date:

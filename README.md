@@ -163,6 +163,13 @@ plausible wrong deadline produces calm inaction right up until the right is gone
 does not get to let a valuable right expire this week — any surviving claim above the attention
 floor with ≤3 days remaining is escalated by Python, whatever the model concluded.
 
+**`doctor` makes a real call.** Having credentials is not the same as being able to infer —
+Bedrock will hand you a perfectly good client for a model your account cannot serve. `doctor`
+therefore issues an actual one-token request, because a probe that cannot fail is not measuring
+anything. The default model is Amazon Nova Pro specifically because it needs no per-provider
+use-case approval, so a fresh clone works; Anthropic models on Bedrock require an approval step
+first.
+
 **The provider fallback is loud.** If Bedrock credentials are absent, Lapse says so on stderr and in
 every run footer. An AWS-native system that quietly ran on something else is a system that reports
 falsely about itself.
@@ -181,7 +188,7 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
 export AWS_REGION=us-west-2
 #   …or just use standard AWS credentials via `aws configure`.
 
-.venv/bin/python -m lapse.cli doctor          # confirm which provider will serve a run
+.venv/bin/python -m lapse.cli doctor          # verifies with a REAL inference call
 .venv/bin/python -m lapse.cli watch --today 2026-09-14
 ```
 

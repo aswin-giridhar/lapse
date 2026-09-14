@@ -148,11 +148,16 @@ def search_reference_documents(query: str) -> str:
         return "Empty query."
     hits: list[str] = []
     for doc in reference_index().values():
-        for match in re.finditer(re.escape(needle), doc.text.lower()):
+        # Up to three excerpts per document. Returning only the first was a
+        # false economy: the clause that actually governs is routinely the
+        # second or third mention, the first being a heading or a cross
+        # reference.
+        for n, match in enumerate(re.finditer(re.escape(needle), doc.text.lower())):
+            if n >= 3:
+                break
             start = max(0, match.start() - 300)
             end = min(len(doc.text), match.end() + 300)
             hits.append(f"--- {doc.doc_id} ---\n...{doc.text[start:end].strip()}...")
-            break  # one excerpt per document keeps the context budget honest
     if not hits:
         return f"No reference document contains '{query}'."
     return "\n\n".join(hits)
