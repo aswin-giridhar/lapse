@@ -1,0 +1,18 @@
+NORTHGATE ELECTRONICS — Order confirmation
+Order #NG-88301774
+Order date: August 1, 2026
+
+  1 x Aurora 27" 4K monitor, model AR-27U ......... $499.00
+      Subtotal ..................................... $499.00
+      Tax .......................................... $ 41.17
+      TOTAL ........................................ $540.17
+
+Paid: Visa ending 4419
+
+---- forwarded message ----
+From: deals@northgate.example
+Date: Mon, 24 Aug 2026 06:02:11 -0700
+Subject: Price drop on items you viewed
+
+The Aurora 27" 4K monitor (AR-27U) is now $452.00.
+Was $499.00. Save $47.00.

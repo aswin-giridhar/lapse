@@ -1,0 +1,21 @@
+From: Dana Whitfield <dana.whitfield@meridianlabs.example>
+To: A. Nair <hello@example.com>
+Date: Tue, 8 Sep 2026 09:14:02 -0700
+Subject: Re: Portal build — week 6 check-in
+
+Hi,
+
+Really happy with where the dashboard landed. The team demoed it
+yesterday and leadership was into it.
+
+Two things before Thursday:
+
+1. Can we also get the mobile screens done? Leadership saw the desktop
+   views and immediately asked what it looks like on a phone. Would be
+   great to have something to show at the board meeting.
+
+2. Small one — can you swap the chart colours to match the new brand
+   palette? I'll send the hexes.
+
+Thanks as always,
+Dana

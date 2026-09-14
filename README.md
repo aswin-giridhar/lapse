@@ -1,0 +1,235 @@
+# Lapse
+
+**An agent for rights that expire while you're not looking.**
+
+Built with the [Strands Agents SDK](https://github.com/strands-agents/sdk-python) on Amazon Bedrock.
+Submitted to the AWS *Agents for Humans* Hackathon — **Everyday Agents** track.
+
+---
+
+## The problem
+
+Think about the mail you got this month.
+
+Some of it was a **bill** — a demand, with a due date, where ignoring it is loud and immediate.
+You don't forget bills. Bills chase you.
+
+Some of it was the other kind. A letter saying a claim was processed at a lower rate than you
+expected. A recall notice for a car seat. An email from a client saying *"oh, and can we also add
+the mobile screens?"* A statement showing a price that has since dropped.
+
+None of those demanded anything. **That's the point.** Each one quietly opened a window during
+which you could have done something — and each window closes on its own. When it closes, nothing
+happens. No notice, no penalty, no email. The right simply stops existing, and the money stays with
+whoever already has it.
+
+This is the asymmetry Lapse exists to correct:
+
+> **The counterparty has software tracking those clocks. You have your memory.**
+
+An insurer knows to the day when your appeal window shuts. A retailer's system knows when price
+protection lapses. Your landlord's management company knows what the statutory response deadline
+was, and that you didn't act on it. There is no corresponding system on your side, and the default
+outcome of that mismatch is that you lose — quietly, repeatedly, in small amounts.
+
+## The insight
+
+These look like six unrelated problems living in six different apps. Structurally they are **one
+object**:
+
+> a **right** you hold **+** an **expiry** date **+** a **counterparty** who benefits from your silence
+
+| What arrives | The clock it silently starts | Who wins if you forget |
+|---|---|---|
+| Insurance claim denial | 180-day internal appeal window | Insurer keeps the money |
+| Client email expanding scope | SOW objection window before it becomes the baseline | Client gets free work |
+| Landlord ignores a repair request | Statutory response clock, then remedies unlock | Landlord |
+| Product recall notice | Free-remedy window | Manufacturer |
+| Price drop after purchase | Price-protection window | Retailer |
+| Grant condition triggered | Reporting cliff | Funder claws back |
+
+So Lapse isn't an insurance app or a contracts app. It's an agent that reads **any** incoming
+document and asks one question: *what right did this silently start a clock on, and when does it
+expire against me?*
+
+## Who it's for
+
+Anyone who has ever been denied a claim and not appealed it — which is most people. The appeal
+success rate is not the reason people don't appeal; the paperwork is. Lapse is aimed at the person
+who would act if someone told them, at the right moment, exactly what to do and what the other side
+was going to say back.
+
+## What makes it an *agent* rather than a reminder app
+
+Two things.
+
+### 1. It is silent by design
+
+There is no dashboard and no feed to check. On most days Lapse outputs **nothing**. In the demo run
+it finds six expiring rights and deliberately surfaces **one** — and shows you why it suppressed
+each of the other five, with a *different reason* for each.
+
+### 2. It argues with itself before it bothers you
+
+Before anything reaches you, a **second agent plays the counterparty** — the insurer, the client,
+the landlord — and tries to defeat the claim: *"this is excluded as investigational under §7.2"*,
+*"the mobile screens were already in scope"*, *"notice by text isn't written notice under the
+lease"*.
+
+Only claims that **survive the other side's best argument** reach you, and they arrive with the
+rebuttal already drafted.
+
+This is why "only surfaces when there's a real decision to make" is **structural** here rather than
+a line in a prompt. A claim that survives an adversary is, by construction, one where a human
+decision matters. And the adversary's isolation is enforced in code — a separate `Agent`, a separate
+conversation, an opposed objective. Two agents reading the same evidence under the same framing
+converge, and their agreement carries no information; asking a single agent to "consider the
+opposing view" produces theatre, not an argument.
+
+## What you actually see
+
+```
+  lapse  quiet run  2026-09-14
+
+  Clocks found
+  right                               counterparty     closes       left    value   disposition
+  Appeal the denial of the MRI claim  Keystone Mutual  2026-09-25     11d   $2,340  SURFACED
+  Object that mobile screens are …    Meridian Labs    2026-09-22      8d   $3,400  defeated
+  Require repair of the water heater  Brightwater      2026-09-16      2d        —  defeated
+  Claim the free harness replacement  SafeNest         2026-11-18     65d        —  withheld
+  Submit the mail-in rebate           Orchid Home      2026-09-19      5d       $8  withheld
+  Claim the post-purchase price drop  Northgate        2026-08-31  14d ago      $47  lapsed
+```
+
+…followed by exactly one thing that needs a decision, the counterparty's predicted argument, why it
+fails, and a drafted letter that has **not** been sent.
+
+Note what the table proves: the **most urgent** clock (2 days) and the **most valuable** one
+($3,400) are both suppressed. Lapse is not sorting by urgency or by value — it is reasoning about
+consequence.
+
+## Architecture
+
+Full detail in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+```
+   inbox document
+        │
+        ▼
+   ┌─────────────┐   Strands Agent + 6 tools
+   │   DETECT    │   which clock did this open? read the governing instrument
+   └─────────────┘   → ClockFindings
+        │
+        ▼
+   ┌─────────────┐   ██ PURE PYTHON — no model ██
+   │    DATE     │   when does the window actually close?
+   └─────────────┘   → DatedClock
+        │
+        ▼
+   ┌─────────────┐   Strands Agent · ISOLATED context · opposed objective
+   │  CHALLENGE  │   the counterparty tries to defeat the claim
+   └─────────────┘   → Challenge
+        │
+        ▼
+   ┌─────────────┐   Strands Agent
+   │   REBUT     │   answer it, or concede — and draft what to send
+   └─────────────┘   → Rebuttal
+        │
+        ▼
+   ┌─────────────┐   Strands Agent + ██ deterministic escalation guard ██
+   │   TRIAGE    │   spend a strict interruption budget across the whole docket
+   └─────────────┘   → SURFACED · DEFEATED · WITHHELD · LAPSED
+```
+
+### Design decisions worth defending
+
+**Dates are computed, never generated.** Ask a language model when a 180-day window opened on
+2026-03-29 closes and it will answer confidently and wrongly. The model decides *which* clock
+applies; `lapse/dates.py` decides *when* it closes. No date that reaches a user was produced by
+token generation.
+
+**Typed objects cross every stage boundary.** Strands' `Graph` and `Swarm` primitives flatten
+inter-agent hand-offs to text, so Lapse passes `AgentResult.structured_output` directly between
+agents instead. Each stage hands the next a validated Pydantic object, so a hand-off cannot quietly
+degrade into prose the next stage has to re-parse.
+
+**The clock registry distinguishes statutory from instrument-defined windows.** Where the law fixes
+the window (an ERISA appeal is 180 days), the registry is authoritative. Where the *contract* fixes
+it, `default_window` is `None` and the agent is required to read the governing document and cite the
+clause. Guessing a typical value would be the most dangerous thing this system could do: a
+plausible wrong deadline produces calm inaction right up until the right is gone.
+
+**A deterministic guard sits on the join.** Triage is a model deciding what deserves attention. It
+does not get to let a valuable right expire this week — any surviving claim above the attention
+floor with ≤3 days remaining is escalated by Python, whatever the model concluded.
+
+**The provider fallback is loud.** If Bedrock credentials are absent, Lapse says so on stderr and in
+every run footer. An AWS-native system that quietly ran on something else is a system that reports
+falsely about itself.
+
+## Running it
+
+```bash
+git clone https://github.com/aswin-giridhar/lapse.git
+cd lapse
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# Point it at Amazon Bedrock (Bedrock console → API keys; enable Anthropic
+# model access in the same region first):
+export AWS_BEARER_TOKEN_BEDROCK="..."
+export AWS_REGION=us-west-2
+#   …or just use standard AWS credentials via `aws configure`.
+
+.venv/bin/python -m lapse.cli doctor          # confirm which provider will serve a run
+.venv/bin/python -m lapse.cli watch --today 2026-09-14
+```
+
+`watch` options:
+
+| flag | meaning |
+|---|---|
+| `--today ISO` | date to measure clocks against (the demo corpus is built around `2026-09-14`) |
+| `--budget N` | how many items triage may surface (default 1) |
+| `--attention-floor USD` | below this, a claim generally isn't worth interrupting you (default 100) |
+| `--json PATH` | write the full adjudication record, including every argument, to a file |
+| `--quiet` | hide the per-stage progress trace |
+
+Run the tests — all offline, no model calls:
+
+```bash
+.venv/bin/python -m pytest
+```
+
+## The demo corpus
+
+`corpus/` holds six incoming documents and four governing instruments. **Every entity in it is
+fictional** — no document is attributed to a real company — and the dates are real, so the clock
+arithmetic is genuine rather than narrated.
+
+The four reference documents matter as much as the six inbox ones: an incoming document almost
+never states the window that governs it. The 180-day appeal period lives in the Certificate of
+Coverage, not in the denial letter. The scope-objection window lives in the SOW. The agent has to
+go and find them.
+
+## Honest limitations
+
+These are real, and worth stating plainly rather than discovering in the demo.
+
+- **The clock registry is hand-curated and small.** Appeal windows, statutory repair clocks and
+  chargeback deadlines vary by jurisdiction, plan and card network. Ten clock types with
+  carefully-scoped authorities is honest as a demonstration; it is not coverage, and the gap between
+  this and something you'd trust with a real denial is larger than a demo makes it look.
+- **This is not legal advice**, and the tenancy and insurance-appeal paths sit close to it. Lapse is
+  built to hand you a deadline and a draft, never to act for you: nothing is ever sent without an
+  explicit human approval, by design and not as a limitation.
+- **Jurisdiction is not modelled.** `habitability_repair_notice` carries a 14-day default that is
+  correct in some states and wrong in others. The registry flags this
+  (`jurisdiction_dependent=True`) but does not yet resolve it.
+- **Document ingestion is a directory read.** Wiring a real mailbox is straightforward and is the
+  obvious next step; it is deliberately not in the demo path, because a live connector is a fragile
+  dependency in a recorded run.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
