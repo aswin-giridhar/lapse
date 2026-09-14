@@ -9,7 +9,7 @@
 
   <!-- ============ header ============ -->
   <text x="40" y="44" font-size="27" font-weight="bold" fill="#0f172a">Lapse — architecture</text>
-  <text x="40" y="70" font-size="14" fill="#475569">Finding rights that expire while nobody is looking. Four Strands agents, two deterministic Python stages, one interruption budget.</text>
+  <text x="40" y="70" font-size="14" fill="#475569">Finding rights that expire while nobody is looking. Four Strands agents, deterministic Python at every join, one interruption budget.</text>
   <line x1="40" y1="82" x2="1160" y2="82" stroke="#cbd5e1" stroke-width="1"/>
 
   <!-- ============ LEFT: the pipeline ============ -->
@@ -57,7 +57,7 @@
   <text x="295" y="554" font-size="13.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">3 · CHALLENGE — Strands Agent, ISOLATED CONTEXT</text>
   <text x="295" y="574" font-size="12.5" fill="#4a1d05" text-anchor="middle">Counsel for the counterparty. Objective: defeat this claim.</text>
   <text x="295" y="592" font-size="12.5" fill="#4a1d05" text-anchor="middle">Fresh Agent per clock; never sees the advocate's reasoning.</text>
-  <text x="295" y="610" font-size="12.5" fill="#4a1d05" text-anchor="middle">Tools: reference reading, plus the date tool so a</text>
+  <text x="295" y="610" font-size="12.5" fill="#4a1d05" text-anchor="middle">Tools: reference reading, plus the date tool to check timeliness.</text>
 
   <line x1="295" y1="630" x2="295" y2="660" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
   <text x="305" y="650" font-size="12" font-style="italic" fill="#1e293b">Challenge</text>
@@ -91,7 +91,7 @@
 
   <rect x="86" y="1016" width="418" height="56" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.4"/>
   <text x="295" y="1038" font-size="12.5" font-weight="bold" fill="#0f2a5c" text-anchor="middle">Python escalation guard — overrides the model</text>
-  <text x="295" y="1056" font-size="12.5" fill="#0f2a5c" text-anchor="middle">3 days or fewer left AND value at/above floor → SURFACED</text>
+  <text x="295" y="1056" font-size="12.5" fill="#0f2a5c" text-anchor="middle">3 days or fewer left; value ≥ floor or unstated → SURFACED</text>
 
   <line x1="295" y1="1084" x2="295" y2="1106" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
 
@@ -136,7 +136,7 @@
   <text x="580" y="364" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
 
   <text x="580" y="394" font-size="12.5" font-weight="bold" fill="#c2410c">ARGUMENT_TOOLS — CHALLENGE and REBUT (4)</text>
-  <text x="580" y="414" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
+  <text x="580" y="414" font-size="12.5" fill="#334155">compute_window_expiry  ·  list / read / search reference documents</text>
 
   <text x="580" y="444" font-size="12.5" font-weight="bold" fill="#c2410c">TRIAGE — none</text>
 
@@ -180,8 +180,8 @@
   <text x="580" y="1002" font-size="12" fill="#334155">3.  Two of the four dispositions, DEFEATED and LAPSED, are assigned by Python</text>
   <text x="580" y="1020" font-size="12" fill="#334155">     and never touch a model at all.</text>
 
-  <text x="580" y="1046" font-size="12" fill="#334155">4.  The escalation guard overrides the model, but only upward, only for live claims,</text>
-  <text x="580" y="1064" font-size="12" fill="#334155">     and only where value_usd was actually quantified.</text>
+  <text x="580" y="1046" font-size="12" fill="#334155">4.  The escalation guard overrides the model, but only upward and only for live</text>
+  <text x="580" y="1064" font-size="12" fill="#334155">     claims; an unstated value qualifies — unknown is not the same as zero.</text>
 
   <text x="580" y="1090" font-size="12" fill="#334155">5.  The interruption budget is enforced in Python after the model rules, though</text>
   <text x="580" y="1108" font-size="12" fill="#334155">     the escalation guard may still exceed it for a right expiring this week.</text>

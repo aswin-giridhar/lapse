@@ -5,7 +5,7 @@ if you stay silent: insurance appeal windows, contract scope-objection windows, 
 repair clocks, recall remedy periods, price protection, mail-in rebates. Nobody chases you about
 these — that is the entire point of them.
 
-Four Strands agents and two deterministic Python stages run over an inbox and, almost always,
+Four Strands agents, with deterministic Python at every join, run over an inbox and, almost always,
 decide to say nothing. The interesting engineering is in the parts that are *not* a model.
 
 ---
@@ -57,7 +57,7 @@ flowchart TD
     subgraph TRIAGE["5 · TRIAGE — the whole surviving docket at once"]
         TPRE{{"Python pre-pass, before any model call<br/>lapsed clock becomes LAPSED<br/>conceded claim becomes DEFEATED"}}
         TMOD["Strands Agent — no tools<br/>whole docket in context, one call per live item<br/>emits SURFACED or WITHHELD"]
-        TGUARD{{"Python escalation guard<br/>3 days or fewer left and value at or above the floor<br/>becomes SURFACED regardless of the model"}}
+        TGUARD{{"Python escalation guard<br/>3 days or fewer left and value at or above the floor — or unstated —<br/>becomes SURFACED regardless of the model"}}
         TPRE --> TMOD --> TGUARD
     end
 
@@ -189,7 +189,7 @@ disposition.
 | Receives | The full `list[Adjudication]` — every clock, end to end |
 | Returns | The same list with `Decision` attached to each |
 | Tools | **None.** Triage reasons only over the docket it is handed. |
-| Agent | One `Agent` reused across the per-item loop |
+| Agent | Fresh `Agent` per item, so no item sees another's decision |
 
 Three sub-stages, in order:
 
@@ -204,15 +204,18 @@ Three sub-stages, in order:
    interruption, and the timing is right *now*; otherwise withhold with the actual reason and a
    `revisit_on` date.
 3. **Python escalation guard.** Any surviving claim with 3 days or fewer remaining and a value at
-   or above the attention floor is promoted to `SURFACED` regardless of what the model concluded.
-   The model decides what deserves attention; it does not get to let a valuable right expire this
-   week.
+   or above the attention floor — or with no stated value — is promoted to `SURFACED` regardless
+   of what the model concluded. The model decides what deserves attention; it does not get to let
+   a valuable right expire this week.
 
-**Honest limits of this stage, since the code is public:** the interruption budget is stated to the
-model in the prompt and is *not* enforced in Python — nothing post-filters to `budget`, and the
-guard can push the surfaced count above it. The guard reads `value_usd or 0.0`, so an unquantified
-claim can never self-escalate however few days remain. And the guard iterates the live set only: it
-cannot resurrect something already marked `DEFEATED` or `LAPSED`.
+**Honest limits of this stage, since the code is public:** the budget is enforced after the model
+rules — where the model surfaces more than the budget allows, the most valuable are kept and the
+rest withheld with a reason that says so — but the escalation guard runs *after* that filter and
+can still push the surfaced count above the budget for a right expiring this week. The guard
+treats an unquantified claim as qualifying, on the principle that unknown is not zero; the budget
+tie-break, however, sorts by `value_usd or 0.0`, so that same unquantified claim loses every
+tie-break when the budget is oversubscribed. And the guard iterates the live set only: it cannot
+resurrect something already marked `DEFEATED` or `LAPSED`.
 
 ---
 
@@ -239,19 +242,21 @@ disposition* — the dating stage and the escalation guard — have no model in 
 | Stage | Tools available |
 |---|---|
 | DETECT | `compute_window_expiry`, `list_clock_types`, `lookup_clock_type`, `list_reference_documents`, `read_reference_document`, `search_reference_documents` |
-| CHALLENGE, REBUT | `list_reference_documents`, `read_reference_document`, `search_reference_documents` |
+| CHALLENGE, REBUT | `compute_window_expiry`, `list_reference_documents`, `read_reference_document`, `search_reference_documents` |
 | TRIAGE | none |
 
 The asymmetry is the point. The detector needs the registry and the arithmetic. The two arguing
-agents need the governing documents and nothing else — they must not be able to redefine the clock
-they are arguing about. Triage is handed a docket and reasons about it.
+agents get the governing documents and the date arithmetic but not the registry — they can check
+when a window closes, but cannot redefine the clock they are arguing about. Triage is handed a
+docket and reasons about it.
 
 ### Agent isolation
 
 The detector, adversary and advocate each construct a fresh `Agent` with its own system prompt and
 empty conversation on every call. Nothing is shared between stages except the typed object handed
-forward. (Triage is the exception: one `Agent` is reused across its per-item loop, so it carries
-conversation state within the triage stage — which is intended, since its whole job is comparative.)
+forward. Triage also builds a fresh `Agent` per item: the comparative context — the whole docket —
+is rendered into every prompt rather than carried in a conversation, so deciding item [1] cannot
+anchor on what the model said about item [0].
 
 ### Provider — `lapse/providers.py`
 

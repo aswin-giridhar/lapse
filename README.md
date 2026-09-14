@@ -177,8 +177,9 @@ clause. Guessing a typical value would be the most dangerous thing this system c
 plausible wrong deadline produces calm inaction right up until the right is gone.
 
 **A deterministic guard sits on the join.** Triage is a model deciding what deserves attention. It
-does not get to let a valuable right expire this week — any surviving claim above the attention
-floor with ≤3 days remaining is escalated by Python, whatever the model concluded.
+does not get to let a valuable right expire this week — any surviving claim at or above the
+attention floor, or with no stated value, and ≤3 days remaining is escalated by Python, whatever
+the model concluded.
 
 **It shows its work.** Every run ends with its own trace — how many model
 invocations, across how many isolated agents, which tools were called how many
