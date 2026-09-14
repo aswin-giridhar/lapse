@@ -77,13 +77,16 @@ costs the user their trust in every future silence.
 """
 
 
-def detect_clocks(document: Document, today: str, model) -> ClockFindings:
+def detect_clocks(
+    document: Document, today: str, model, hooks: list | None = None
+) -> ClockFindings:
     """Find every expiring right in one document."""
     agent = Agent(
         model=model,
         tools=DETECTION_TOOLS,
         system_prompt=SYSTEM_PROMPT,
         callback_handler=None,
+        hooks=list(hooks or []),
     )
     result = agent(
         f"Today is {today}.\n\n"

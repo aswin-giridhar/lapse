@@ -49,6 +49,7 @@ def triage(
     model,
     budget: int = 1,
     attention_floor_usd: float = 100.0,
+    hooks: list | None = None,
 ) -> list[Adjudication]:
     """Decide which surviving claims reach the human.
 
@@ -98,7 +99,12 @@ def triage(
         # item [1] would see item [0]'s decision and anchor on it -- which
         # would quietly contradict the isolation this design claims, and cost
         # O(n^2) tokens for the privilege.
-        agent = Agent(model=model, system_prompt=SYSTEM_PROMPT, callback_handler=None)
+        agent = Agent(
+            model=model,
+            system_prompt=SYSTEM_PROMPT,
+            callback_handler=None,
+            hooks=list(hooks or []),
+        )
         result = agent(
             f"Today is {today}. Interruption budget: {budget} item(s) total.\n"
             f"Attention floor: claims worth less than ${attention_floor_usd:.0f} "

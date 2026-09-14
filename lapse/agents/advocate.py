@@ -61,7 +61,11 @@ def _clean(text: str) -> str:
 
 
 def rebut_challenge(
-    clock: DatedClock, challenge: Challenge, model, source_text: str = ""
+    clock: DatedClock,
+    challenge: Challenge,
+    model,
+    source_text: str = "",
+    hooks: list | None = None,
 ) -> Rebuttal:
     """Answer the counterparty's argument, and draft the action if it survives."""
     f = clock.finding
@@ -70,6 +74,7 @@ def rebut_challenge(
         tools=ARGUMENT_TOOLS,
         system_prompt=SYSTEM_PROMPT,
         callback_handler=None,
+        hooks=list(hooks or []),
     )
     result = agent(
         f"Your client's claim: {f.right_summary}\n"
@@ -108,6 +113,7 @@ def rebut_challenge(
                 "are given."
             ),
             callback_handler=None,
+            hooks=list(hooks or []),
         )
         drafted = str(
             drafter(

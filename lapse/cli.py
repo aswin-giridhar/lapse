@@ -240,6 +240,28 @@ def cmd_watch(args: argparse.Namespace) -> int:
         + Text(f"{report.muted_count} muted by you  ·  ", style="dim")
         + Text(f"served by {report.provider}", style="dim")
     )
+    # Show the work. A user deciding whether to trust a silence should be able
+    # to see that the agent actually looked, and what that looking cost.
+    console.print(Text(f"  {report.metrics.summary()}", style="dim"))
+    if report.errors:
+        console.print()
+        console.print(
+            Panel(
+                Text(
+                    "\n".join(f"{doc}: {err}" for doc, err in report.errors),
+                    style="yellow",
+                ),
+                title="[yellow]documents that could not be examined[/yellow]",
+                border_style="yellow",
+                padding=(0, 2),
+            )
+        )
+        console.print(
+            Text(
+                "  These were NOT examined. Any clock inside them is unwatched.",
+                style="bold yellow",
+            )
+        )
     console.print()
 
     if args.json:

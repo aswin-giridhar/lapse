@@ -68,7 +68,9 @@ the argument fully disposes of the claim, not when it merely complicates it.
 """
 
 
-def challenge_clock(clock: DatedClock, model, source_text: str = "") -> Challenge:
+def challenge_clock(
+    clock: DatedClock, model, source_text: str = "", hooks: list | None = None
+) -> Challenge:
     """Argue the counterparty's side against one clock, in an isolated context."""
     f = clock.finding
     agent = Agent(
@@ -76,6 +78,7 @@ def challenge_clock(clock: DatedClock, model, source_text: str = "") -> Challeng
         tools=ARGUMENT_TOOLS,
         system_prompt=SYSTEM_PROMPT,
         callback_handler=None,
+        hooks=list(hooks or []),
     )
     result = agent(
         "A claim is being asserted against your side. Defeat it if you can.\n\n"
