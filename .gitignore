@@ -4,3 +4,5 @@ __pycache__/
 .env
 .lapse_state.json
 submission/
+BRAINSTORM.md
+docs/SUBMISSION_CHECKLIST.md
