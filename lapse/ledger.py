@@ -29,13 +29,25 @@ UserAction = Literal["none", "dismissed", "snoozed", "acted"]
 def clock_identity(adj: Adjudication) -> str:
     """A stable id for a clock, so the same right is never counted twice.
 
-    Keyed on what makes a clock *the same clock*: the document it came from,
-    the kind of right, and the date the window opened. Deliberately NOT keyed
-    on the summary text, which is model-generated and varies between runs --
-    keying on that would make every run invent new clocks.
+    Keyed on what makes a clock *the same clock* regardless of how it reached
+    you: who it is against, what kind of right it is, when the window opened,
+    and how long it runs.
+
+    Deliberately NOT keyed on `doc_id` or on the summary text. Both are
+    model-generated. Keying on the filename would defeat the exact case this
+    is for -- the same denial letter arriving twice, as two files, creating
+    two clocks -- and any drift in that generated field would silently forget
+    every dismissal the user had made against it.
     """
     f = adj.clock.finding
-    raw = f"{f.doc_id}|{f.clock_kind}|{f.trigger_date}"
+    raw = "|".join(
+        [
+            f.counterparty.strip().lower(),
+            f.clock_kind.strip().lower(),
+            f.trigger_date.strip(),
+            str(f.window_days),
+        ]
+    )
     return hashlib.sha256(raw.encode()).hexdigest()[:12]
 
 
@@ -85,7 +97,15 @@ class Ledger:
             # ever made and pestering them about all of it again.
             raise LedgerUnreadable(f"Cannot read ledger at {self.path}: {exc}") from exc
         for cid, payload in raw.get("entries", {}).items():
-            self.entries[cid] = Entry(**payload)
+            try:
+                self.entries[cid] = Entry(**payload)
+            except TypeError as exc:
+                # An older or newer ledger schema is an unreadable ledger, not
+                # an empty one. Starting fresh here would silently discard
+                # every decision the user had made.
+                raise LedgerUnreadable(
+                    f"Ledger at {self.path} has an incompatible entry {cid!r}: {exc}"
+                ) from exc
 
     def save(self) -> None:
         self.path.write_text(
@@ -125,8 +145,17 @@ class Ledger:
         if clock_id not in self.entries:
             raise KeyError(clock_id)
         entry = self.entries[clock_id]
+        if action == "snoozed" and not until:
+            raise ValueError(
+                "a snooze needs a date; without one it would never mute anything"
+            )
         entry.action = action
-        entry.snoozed_until = until
+        # Only a snooze carries a date. Clearing it on every action would drop
+        # a live snooze on an unrelated note update.
+        if action == "snoozed":
+            entry.snoozed_until = until
+        elif action in {"dismissed", "acted"}:
+            entry.snoozed_until = None
         if note:
             entry.note = note
         return entry

@@ -57,6 +57,7 @@ class RunReport:
     adjudications: list[Adjudication] = field(default_factory=list)
     new_clock_ids: set[str] = field(default_factory=set)
     muted_count: int = 0
+    errors: list[tuple[str, str]] = field(default_factory=list)
 
     def is_new(self, adj: Adjudication) -> bool:
         return clock_identity(adj) in self.new_clock_ids
@@ -104,22 +105,40 @@ def quiet_run(
     docs = list(documents) if documents is not None else load_inbox()
     emit = on_event or (lambda stage, msg: None)
 
-    # Detection is an extraction task and wants determinism: the same document
-    # must not yield a clock on one run and nothing on the next, or the user
-    # cannot trust the silence. Argument is a generation task and is allowed a
-    # little more room.
+    # Detection is an extraction task, so it runs at temperature 0 to reduce
+    # variance. It does NOT make the run deterministic, and it would be
+    # dishonest to imply otherwise: measured over five runs of the same six
+    # documents, detection returned 4, 5, 5, 5, 6 and 6 clocks -- a 50%
+    # spread on the same input. Temperature 0
+    # constrains sampling, not tool-use paths or structured-output retries.
+    # Recall this imperfect is the central open problem for this system --
+    # a missed clock is silent, and silence is exactly what the user is being
+    # asked to trust. Argument is generation and is allowed more room.
     detect_model = build_model(temperature=0.0)
     argue_model = build_model(temperature=0.3)
     model = argue_model
     provider = active_provider()
     emit("provider", f"{provider.name} / {provider.model_id} ({provider.detail})")
 
+    errors: list[tuple[str, str]] = []
     adjudications: list[Adjudication] = []
-    source_by_clock: dict[int, str] = {}
+    # Pair each adjudication with the document it came from directly. Keying a
+    # side table on id() is fragile and, worse, degrades to an empty document
+    # -- which would hand the adversary nothing to argue with while looking
+    # like a successful run.
+    sources: list[str] = []
 
     for doc in docs:
         emit("detect", doc.doc_id)
-        found = detect_clocks(doc, today, detect_model)
+        try:
+            found = detect_clocks(doc, today, detect_model)
+        except Exception as exc:  # noqa: BLE001 - reported, never swallowed
+            # A document that cannot be read must be announced, not skipped.
+            # Silently dropping it would mean a clock the user believes is
+            # being watched is not being watched at all.
+            emit("detect.error", f"{doc.doc_id}: {type(exc).__name__}: {exc}")
+            errors.append((doc.doc_id, f"{type(exc).__name__}: {exc}"))
+            continue
         if not found.findings:
             emit("detect.none", f"{doc.doc_id}: {found.no_clock_reason}")
             continue
@@ -131,7 +150,7 @@ def quiet_run(
                 f"({clock.days_remaining}d, {clock.status.value})",
             )
             adjudications.append(Adjudication(clock=clock))
-            source_by_clock[id(adjudications[-1])] = doc.text
+            sources.append(doc.text)
 
     # Only live clocks are worth arguing about. A lapsed one is a fact, not a
     # dispute -- and spending model calls on it would be spending them on
@@ -139,7 +158,7 @@ def quiet_run(
     ledger = ledger if ledger is not None else Ledger()
     muted = 0
 
-    for adj in adjudications:
+    for adj, source in zip(adjudications, sources, strict=True):
         if adj.clock.status is ClockStatus.LAPSED:
             continue
         # Respect what the user already decided, BEFORE spending model calls
@@ -158,7 +177,6 @@ def quiet_run(
                 emit("muted", f"{adj.clock.finding.right_summary} -- {why}")
                 continue
         emit("challenge", adj.clock.finding.right_summary)
-        source = source_by_clock.get(id(adj), "")
         adj.challenge = challenge_clock(adj.clock, argue_model, source)
 
         # A deterministic override on the newest and least-defended path.
@@ -177,17 +195,22 @@ def quiet_run(
                 f"{adj.clock.expiry_date}, {adj.clock.days_remaining} days away "
                 f"-- argument void",
             )
-            adj.challenge = Challenge(
-                ground="none",
-                defeats_claim=False,
-                argument=(
-                    "The counterparty argued the claim was out of time. The "
-                    f"window closes {adj.clock.expiry_date}, "
-                    f"{adj.clock.days_remaining} days from now, so the argument "
-                    "is void on the computed record."
-                ),
-                authority="Computed from the trigger date and the governing window.",
-                confidence="weak",
+            # Void the timeliness point WITHOUT discarding any other ground
+            # the counterparty raised. Throwing the whole challenge away would
+            # silently drop a valid exclusion argument that happened to be
+            # bundled with a bad one, and hand the user a claim that had never
+            # really been tested.
+            adj.challenge = adj.challenge.model_copy(
+                update={
+                    "defeats_claim": False,
+                    "ground": "none" if adj.challenge.ground == "untimely" else adj.challenge.ground,
+                    "asserts_window_has_run": False,
+                    "argument": (
+                        f"[Timeliness argument discarded: the window closes "
+                        f"{adj.clock.expiry_date}, {adj.clock.days_remaining} days "
+                        f"from now.] Remaining argument: {adj.challenge.argument}"
+                    ),
+                }
             )
         emit(
             "challenge.result",
@@ -221,4 +244,5 @@ def quiet_run(
         adjudications=adjudications,
         new_clock_ids=new_ids,
         muted_count=muted,
+        errors=errors,
     )

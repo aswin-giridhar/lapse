@@ -242,6 +242,32 @@ never states the window that governs it. The 180-day appeal period lives in the 
 Coverage, not in the denial letter. The scope-objection window lives in the SOW. The agent has to
 go and find them.
 
+## What a run costs, and what it misses
+
+Measured on Amazon Nova Pro, us-west-2, over the six-document corpus. Two
+correctly-instrumented runs agreed to within 3%, which is the only reason the
+figure is quoted at all — one run gives a value, two tell you whether it means
+anything.
+
+| | |
+|---|---|
+| Per six-document run | **$0.167** (runs measured at $0.170 and $0.164) |
+| Per document | **$0.028** |
+| A user receiving 30 documents a month | **~$0.84/month** |
+| Tokens per run | ~178k in / ~8.5k out, 18 model invocations |
+
+**And the number that matters more.** Six runs of the identical corpus with
+detection pinned at `temperature=0.0` found **4, 5, 5, 5, 6 and 6** clocks.
+That is a 50% spread on the same input, and temperature 0 does not fix it —
+it constrains sampling, not tool-use paths or structured-output retries.
+
+This is the central open problem, and it is worse here than it would be in most
+systems: **a missed clock is silent**, and silence is precisely what the user is
+being asked to trust. An agent that says nothing because there was nothing to
+say and one that says nothing because it failed to look are indistinguishable
+from the outside. The first thing an eval harness should measure is detection
+recall against a labelled set, not answer quality.
+
 ## Honest limitations
 
 These are real, and worth stating plainly rather than discovering in the demo.
