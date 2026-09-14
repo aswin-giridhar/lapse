@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .env
 .lapse_state.json
+submission/

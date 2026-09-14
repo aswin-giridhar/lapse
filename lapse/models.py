@@ -67,6 +67,25 @@ class Challenge(BaseModel):
     Produced by an agent that never sees the advocate's reasoning.
     """
 
+    ground: Literal[
+        "procedural_notice", "exclusion", "moot", "untimely", "other", "none"
+    ] = Field(
+        default="other",
+        description=(
+            "Which kind of argument this is. 'untimely' means the window has "
+            "already run. Classifying the ground lets the system check the "
+            "argument against facts it already computed."
+        )
+    )
+    asserts_window_has_run: bool = Field(
+        default=False,
+        description=(
+            "True if any part of your argument relies on the holder having "
+            "missed a deadline, been too late, or failed to act within a "
+            "required period. Answer honestly even if that is not your main "
+            "point -- this is checked against arithmetic, not opinion."
+        ),
+    )
     defeats_claim: bool = Field(
         description="True if this argument fully defeats the claim, not merely weakens it"
     )

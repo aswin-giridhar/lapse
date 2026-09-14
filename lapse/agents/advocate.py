@@ -10,6 +10,8 @@ never loses is a rubber stamp, and the adversary stage would be decorative.
 
 from __future__ import annotations
 
+import re
+
 from strands import Agent
 
 from lapse.models import Challenge, DatedClock, Rebuttal
@@ -41,7 +43,26 @@ Never assert a fact that is not in the documents you were given.
 """
 
 
-def rebut_challenge(clock: DatedClock, challenge: Challenge, model) -> Rebuttal:
+_THINKING = re.compile(r"<thinking>.*?</thinking>", re.DOTALL | re.IGNORECASE)
+
+
+def _clean(text: str) -> str:
+    """Strip reasoning scaffolding a model may wrap around the letter.
+
+    Some models emit a <thinking> block, or fence the letter in markdown, or
+    lead with "Here is the letter:". None of that belongs in something the
+    user is one keystroke away from sending.
+    """
+    text = _THINKING.sub("", text)
+    text = re.sub(r"^\s*```[a-zA-Z]*\s*|\s*```\s*$", "", text.strip())
+    text = re.sub(r"^\s*(here('s| is) the letter[:.]?|draft[:.]?)\s*", "", text, flags=re.I)
+    text = re.sub(r"^\s*-{3,}\s*", "", text.strip())
+    return text.strip()
+
+
+def rebut_challenge(
+    clock: DatedClock, challenge: Challenge, model, source_text: str = ""
+) -> Rebuttal:
     """Answer the counterparty's argument, and draft the action if it survives."""
     f = clock.finding
     agent = Agent(
@@ -60,10 +81,49 @@ def rebut_challenge(clock: DatedClock, challenge: Challenge, model) -> Rebuttal:
         f"  \"{challenge.argument}\"\n"
         f"  relying on: {challenge.authority or 'nothing specific'}\n"
         f"  their own assessment of strength: {challenge.confidence}\n\n"
-        "Answer it or concede it. If it survives, draft what should be sent.",
+        f"The document the counterparty issued:\n<document>\n{source_text}\n</document>\n\n"
+        "Answer it or concede it. If it survives, draft what should be sent.\n\n"
+        "Before conceding, search the reference documents for anything that "
+        "POSTDATES or OVERRIDES the authority they relied on -- a later policy "
+        "bulletin, an amended exhibit, a superseding clause. That is where the "
+        "answer usually is.\n"
+        "Your draft must be sendable as written: no bracketed placeholders, no "
+        "[Your Name], no [state the basis here]. Every fact you need is in the "
+        "documents you have been given, so fill it in.",
         structured_output_model=Rebuttal,
     )
-    return result.structured_output or Rebuttal(
+    rebuttal = result.structured_output
+    if rebuttal is not None and rebuttal.survives and not rebuttal.drafted_action.strip():
+        # A surviving claim with no draft is the failure this system exists to
+        # prevent: a deadline with no way to act on it is just anxiety with a
+        # date attached. Ask again, for the draft alone.
+        drafter = Agent(
+            model=model,
+            tools=ARGUMENT_TOOLS,
+            system_prompt=(
+                "You write the letter that gets sent. Output ONLY the letter "
+                "body -- no commentary, no preamble. It must be sendable as "
+                "written: no bracketed placeholders of any kind. Use the "
+                "specific claim numbers, dates, amounts and authorities you "
+                "are given."
+            ),
+            callback_handler=None,
+        )
+        drafted = str(
+            drafter(
+                f"Write the letter for this claim.\n\n"
+                f"Claim: {f.right_summary}\n"
+                f"To: {f.counterparty}\n"
+                f"Deadline: {clock.expiry_date}\n"
+                f"Authority: {f.authority}\n"
+                f"The counterparty's position: {challenge.argument}\n"
+                f"Why it fails: {rebuttal.answer}\n"
+                f"Evidence relied on: {rebuttal.authority}\n\n"
+                f"The document they issued:\n<document>\n{source_text}\n</document>"
+            )
+        ).strip()
+        rebuttal = rebuttal.model_copy(update={"drafted_action": _clean(drafted)})
+    return rebuttal or Rebuttal(
         survives=False,
         answer="The advocate produced no answer; treating the claim as unresolved.",
         authority="",

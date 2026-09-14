@@ -84,6 +84,12 @@ def lookup_clock_type(key: str) -> str:
         else (
             "INSTRUMENT-DEFINED. There is no safe default. Read the governing "
             "document and quote the clause that sets the window."
+            + (
+                " Windows of this kind are counted in BUSINESS days; set "
+                "business_days=true."
+                if ct.business_days
+                else ""
+            )
         )
     )
     return (
@@ -162,6 +168,7 @@ DETECTION_TOOLS = [
 ]
 
 ARGUMENT_TOOLS = [
+    compute_window_expiry,
     list_reference_documents,
     read_reference_document,
     search_reference_documents,

@@ -140,7 +140,14 @@ def catalogue() -> str:
         window = (
             f"{ct.default_window} {'business' if ct.business_days else 'calendar'} days"
             if ct.default_window is not None
-            else "INSTRUMENT-DEFINED - you must read the governing document"
+            else (
+                "INSTRUMENT-DEFINED - you must read the governing document"
+                + (
+                    " (and note this kind of window is counted in BUSINESS days)"
+                    if ct.business_days
+                    else ""
+                )
+            )
         )
         lines.append(
             f"- {ct.key}: {ct.label}\n"

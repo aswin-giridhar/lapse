@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <!-- ============ header ============ -->
+  <text x="40" y="44" font-size="27" font-weight="bold" fill="#0f172a">Lapse — architecture</text>
+  <text x="40" y="70" font-size="14" fill="#475569">Finding rights that expire while nobody is looking. Four Strands agents, two deterministic Python stages, one interruption budget.</text>
+  <line x1="40" y1="82" x2="1160" y2="82" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- ============ LEFT: the pipeline ============ -->
+
+  <!-- input -->
+  <rect x="70" y="96" width="450" height="64" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+  <text x="295" y="118" font-size="13.5" font-weight="bold" fill="#1e293b" text-anchor="middle">INPUT — lapse/corpus.py</text>
+  <text x="295" y="136" font-size="12.5" fill="#334155" text-anchor="middle">inbox: corpus/*.txt — what arrived this week</text>
+  <text x="295" y="153" font-size="12.5" fill="#334155" text-anchor="middle">reference/: the lease, the SOW, the plan certificate, a bulletin</text>
+
+  <line x1="295" y1="160" x2="295" y2="184" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- 1 detect -->
+  <rect x="70" y="190" width="450" height="100" rx="8" fill="#ffedd5" stroke="#c2410c" stroke-width="2.4"/>
+  <text x="295" y="214" font-size="13.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">1 · DETECT — Strands Agent (fresh per document)</text>
+  <text x="295" y="234" font-size="12.5" fill="#4a1d05" text-anchor="middle">Which kind of clock did this document open, and when?</text>
+  <text x="295" y="252" font-size="12.5" fill="#4a1d05" text-anchor="middle">Reads the governing instrument when the window is</text>
+  <text x="295" y="270" font-size="12.5" fill="#4a1d05" text-anchor="middle">instrument-defined. Tools: all six.</text>
+
+  <line x1="295" y1="290" x2="295" y2="320" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="305" y="310" font-size="12" font-style="italic" fill="#1e293b">ClockFindings (0..N)</text>
+
+  <!-- 2 date -->
+  <rect x="70" y="326" width="450" height="86" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.4"/>
+  <text x="295" y="350" font-size="13.5" font-weight="bold" fill="#0f2a5c" text-anchor="middle">2 · DATE — PURE PYTHON, NO MODEL</text>
+  <text x="295" y="370" font-size="12.5" fill="#0f2a5c" text-anchor="middle">date_the_clock() → compute_expiry(), days_remaining()</text>
+  <text x="295" y="390" font-size="12.5" fill="#0f2a5c" text-anchor="middle">A generated date is confidently wrong. This one is computed.</text>
+
+  <line x1="295" y1="412" x2="295" y2="442" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="305" y="432" font-size="12" font-style="italic" fill="#1e293b">DatedClock</text>
+
+  <!-- gate -->
+  <rect x="70" y="448" width="450" height="48" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.4"/>
+  <text x="295" y="478" font-size="13.5" font-weight="bold" fill="#0f2a5c" text-anchor="middle">status is LIVE?  (Python)</text>
+
+  <!-- lapsed bypass -->
+  <polyline points="70,472 46,472 46,870 82,870" fill="none" stroke="#1d4ed8" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+  <text x="0" y="0" font-size="11.5" fill="#1d4ed8" transform="translate(40,700) rotate(-90)" text-anchor="middle">lapsed — skips both model calls</text>
+
+  <line x1="295" y1="496" x2="295" y2="524" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="305" y="516" font-size="12" font-style="italic" fill="#1e293b">live</text>
+
+  <!-- 3 challenge -->
+  <rect x="70" y="530" width="450" height="100" rx="8" fill="#ffedd5" stroke="#c2410c" stroke-width="2.4"/>
+  <text x="295" y="554" font-size="13.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">3 · CHALLENGE — Strands Agent, ISOLATED CONTEXT</text>
+  <text x="295" y="574" font-size="12.5" fill="#4a1d05" text-anchor="middle">Counsel for the counterparty. Objective: defeat this claim.</text>
+  <text x="295" y="592" font-size="12.5" fill="#4a1d05" text-anchor="middle">Fresh Agent per clock; never sees the advocate's reasoning.</text>
+  <text x="295" y="610" font-size="12.5" fill="#4a1d05" text-anchor="middle">Tools: the three reference-reading tools only.</text>
+
+  <line x1="295" y1="630" x2="295" y2="660" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="305" y="650" font-size="12" font-style="italic" fill="#1e293b">Challenge</text>
+
+  <!-- 4 rebut -->
+  <rect x="70" y="666" width="450" height="100" rx="8" fill="#ffedd5" stroke="#c2410c" stroke-width="2.4"/>
+  <text x="295" y="690" font-size="13.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">4 · REBUT — Strands Agent</text>
+  <text x="295" y="710" font-size="12.5" fill="#4a1d05" text-anchor="middle">Answer the challenge, or concede it. An advocate that</text>
+  <text x="295" y="728" font-size="12.5" fill="#4a1d05" text-anchor="middle">never loses would make stage 3 decorative.</text>
+  <text x="295" y="746" font-size="12.5" fill="#4a1d05" text-anchor="middle">Drafts the letter, email or filing to send.</text>
+
+  <line x1="295" y1="766" x2="295" y2="796" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="305" y="786" font-size="12" font-style="italic" fill="#1e293b">Rebuttal</text>
+
+  <!-- 5 triage container -->
+  <rect x="70" y="802" width="450" height="282" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="295" y="824" font-size="13.5" font-weight="bold" fill="#0f172a" text-anchor="middle">5 · TRIAGE — the whole surviving docket at once</text>
+
+  <rect x="86" y="838" width="418" height="64" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.4"/>
+  <text x="295" y="862" font-size="12.5" font-weight="bold" fill="#0f2a5c" text-anchor="middle">Python pre-pass — before any model call</text>
+  <text x="295" y="882" font-size="12.5" fill="#0f2a5c" text-anchor="middle">lapsed clock → LAPSED   ·   conceded claim → DEFEATED</text>
+
+  <line x1="295" y1="902" x2="295" y2="914" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="86" y="918" width="418" height="82" rx="7" fill="#ffedd5" stroke="#c2410c" stroke-width="2.4"/>
+  <text x="295" y="940" font-size="12.5" font-weight="bold" fill="#4a1d05" text-anchor="middle">Strands Agent · triage (no tools)</text>
+  <text x="295" y="958" font-size="12.5" fill="#4a1d05" text-anchor="middle">The whole docket is in context; one call per live item —</text>
+  <text x="295" y="976" font-size="12.5" fill="#4a1d05" text-anchor="middle">it can rank, not merely score.   → SURFACED / WITHHELD</text>
+
+  <line x1="295" y1="1000" x2="295" y2="1012" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="86" y="1016" width="418" height="56" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.4"/>
+  <text x="295" y="1038" font-size="12.5" font-weight="bold" fill="#0f2a5c" text-anchor="middle">Python escalation guard — overrides the model</text>
+  <text x="295" y="1056" font-size="12.5" fill="#0f2a5c" text-anchor="middle">3 days or fewer left AND value at/above floor → SURFACED</text>
+
+  <line x1="295" y1="1084" x2="295" y2="1106" stroke="#334155" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- dispositions -->
+  <rect x="70" y="1112" width="108" height="58" rx="7" fill="#fee2e2" stroke="#b91c1c" stroke-width="2.2"/>
+  <text x="124" y="1134" font-size="12.5" font-weight="bold" fill="#5c0f0f" text-anchor="middle">SURFACED</text>
+  <text x="124" y="1152" font-size="10.5" fill="#7f1d1d" text-anchor="middle">with a draft</text>
+
+  <rect x="184" y="1112" width="108" height="58" rx="7" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/>
+  <text x="238" y="1134" font-size="12.5" font-weight="bold" fill="#334155" text-anchor="middle">DEFEATED</text>
+  <text x="238" y="1152" font-size="10.5" fill="#64748b" text-anchor="middle">they were right</text>
+
+  <rect x="298" y="1112" width="108" height="58" rx="7" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/>
+  <text x="352" y="1134" font-size="12.5" font-weight="bold" fill="#334155" text-anchor="middle">WITHHELD</text>
+  <text x="352" y="1152" font-size="10.5" fill="#64748b" text-anchor="middle">real, not yet</text>
+
+  <rect x="412" y="1112" width="108" height="58" rx="7" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/>
+  <text x="466" y="1134" font-size="12.5" font-weight="bold" fill="#334155" text-anchor="middle">LAPSED</text>
+  <text x="466" y="1152" font-size="10.5" fill="#64748b" text-anchor="middle">window closed</text>
+
+  <!-- ============ RIGHT column ============ -->
+
+  <!-- provider -->
+  <rect x="560" y="96" width="600" height="156" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="580" y="120" font-size="13.5" font-weight="bold" fill="#0f172a">Model provider — lapse/providers.py</text>
+
+  <rect x="580" y="132" width="560" height="46" rx="7" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+  <text x="596" y="152" font-size="12.5" font-weight="bold" fill="#1e293b">Amazon Bedrock — primary</text>
+  <text x="596" y="170" font-size="12.5" fill="#334155">global.anthropic.claude-sonnet-4-6  ·  us-west-2  ·  bearer token or boto3 creds</text>
+
+  <text x="596" y="197" font-size="12" fill="#475569">only when AWS credentials are genuinely absent — and it says so on stderr</text>
+
+  <rect x="580" y="204" width="560" height="38" rx="7" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/>
+  <text x="596" y="228" font-size="12.5" fill="#334155"><tspan font-weight="bold">LiteLLM — fallback only.</tspan> Never silent; lapse doctor reports which one served.</text>
+
+  <!-- tools -->
+  <rect x="560" y="276" width="600" height="234" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="580" y="300" font-size="13.5" font-weight="bold" fill="#0f172a">Tools — lapse/tools.py (every one is deterministic Python)</text>
+
+  <text x="580" y="326" font-size="12.5" font-weight="bold" fill="#c2410c">DETECTION_TOOLS — DETECT only (6)</text>
+  <text x="580" y="346" font-size="12.5" fill="#334155">compute_window_expiry  ·  list_clock_types  ·  lookup_clock_type</text>
+  <text x="580" y="364" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
+
+  <text x="580" y="394" font-size="12.5" font-weight="bold" fill="#c2410c">ARGUMENT_TOOLS — CHALLENGE and REBUT (3)</text>
+  <text x="580" y="414" font-size="12.5" fill="#334155">list_reference_documents  ·  read_reference_document  ·  search_reference_documents</text>
+
+  <text x="580" y="444" font-size="12.5" font-weight="bold" fill="#c2410c">TRIAGE — none</text>
+
+  <text x="580" y="470" font-size="12" fill="#475569">The asymmetry is the point: the two arguing agents can read the governing</text>
+  <text x="580" y="488" font-size="12" fill="#475569">instruments but cannot redefine the clock they are arguing about.</text>
+
+  <!-- typed payloads -->
+  <rect x="560" y="534" width="600" height="132" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="580" y="558" font-size="13.5" font-weight="bold" fill="#0f172a">Typed payloads — lapse/models.py (Pydantic)</text>
+  <text x="580" y="586" font-size="13" font-weight="bold" fill="#0f2a5c">ClockFindings → DatedClock → Challenge → Rebuttal → Decision</text>
+  <text x="580" y="612" font-size="12" fill="#475569">Strands' Graph and Swarm primitives flatten inter-agent hand-offs to text, so</text>
+  <text x="580" y="630" font-size="12" fill="#475569">Lapse orchestrates in plain Python and passes AgentResult.structured_output</text>
+  <text x="580" y="648" font-size="12" fill="#475569">straight into the next stage. All of it accumulates into one Adjudication record.</text>
+
+  <!-- legend -->
+  <rect x="560" y="690" width="600" height="150" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="580" y="714" font-size="13.5" font-weight="bold" fill="#0f172a">Legend</text>
+
+  <rect x="580" y="728" width="28" height="18" rx="6" fill="#ffedd5" stroke="#c2410c" stroke-width="2.2"/>
+  <text x="620" y="742" font-size="12.5" fill="#334155">Model-driven — a Strands Agent call (rounded corners)</text>
+
+  <rect x="580" y="756" width="28" height="18" rx="0" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2.2"/>
+  <text x="620" y="770" font-size="12.5" fill="#334155">Deterministic Python, no tokens involved (square corners)</text>
+
+  <rect x="580" y="784" width="28" height="18" rx="4" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+  <text x="620" y="798" font-size="12.5" fill="#334155">Input, output or infrastructure</text>
+
+  <line x1="580" y1="820" x2="608" y2="820" stroke="#334155" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text x="620" y="825" font-size="12.5" fill="#334155">A typed Pydantic object crossing a stage boundary</text>
+
+  <!-- claims -->
+  <rect x="560" y="864" width="600" height="266" rx="10" fill="#fbfdff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="580" y="888" font-size="13.5" font-weight="bold" fill="#0f172a">Design claims, each checkable in the source</text>
+
+  <text x="580" y="914" font-size="12" fill="#334155">1.  No date is ever generated. date_the_clock() in run.py recomputes every expiry</text>
+  <text x="580" y="932" font-size="12" fill="#334155">     in Python from lapse/dates.py before it can reach a human.</text>
+
+  <text x="580" y="958" font-size="12" fill="#334155">2.  The adversary's isolation is structural — separate Agent, separate conversation,</text>
+  <text x="580" y="976" font-size="12" fill="#334155">     opposed objective — not a line in a prompt asking it to be sceptical.</text>
+
+  <text x="580" y="1002" font-size="12" fill="#334155">3.  Two of the four dispositions, DEFEATED and LAPSED, are assigned by Python</text>
+  <text x="580" y="1020" font-size="12" fill="#334155">     and never touch a model at all.</text>
+
+  <text x="580" y="1046" font-size="12" fill="#334155">4.  The escalation guard overrides the model, but only upward, only for live claims,</text>
+  <text x="580" y="1064" font-size="12" fill="#334155">     and only where value_usd was actually quantified.</text>
+
+  <text x="580" y="1090" font-size="12" fill="#334155">5.  The interruption budget is stated to the model, not enforced in Python — and</text>
+  <text x="580" y="1108" font-size="12" fill="#334155">     the guard can surface more than the budget. Stated plainly rather than implied.</text>
+
+  <text x="560" y="1162" font-size="11.5" fill="#94a3b8">lapse watch --today 2026-09-14 --budget 1 --attention-floor 100      ·      docs/ARCHITECTURE.md</text>
+</svg>

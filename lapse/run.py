@@ -25,6 +25,7 @@ from lapse.corpus import Document, load_inbox
 from lapse.dates import compute_expiry, days_remaining, parse_date
 from lapse.models import (
     Adjudication,
+    Challenge,
     ClockFinding,
     ClockStatus,
     DatedClock,
@@ -100,6 +101,7 @@ def quiet_run(
     emit("provider", f"{provider.name} / {provider.model_id} ({provider.detail})")
 
     adjudications: list[Adjudication] = []
+    source_by_clock: dict[int, str] = {}
 
     for doc in docs:
         emit("detect", doc.doc_id)
@@ -115,6 +117,7 @@ def quiet_run(
                 f"({clock.days_remaining}d, {clock.status.value})",
             )
             adjudications.append(Adjudication(clock=clock))
+            source_by_clock[id(adjudications[-1])] = doc.text
 
     # Only live clocks are worth arguing about. A lapsed one is a fact, not a
     # dispute -- and spending model calls on it would be spending them on
@@ -123,14 +126,44 @@ def quiet_run(
         if adj.clock.status is ClockStatus.LAPSED:
             continue
         emit("challenge", adj.clock.finding.right_summary)
-        adj.challenge = challenge_clock(adj.clock, model)
+        source = source_by_clock.get(id(adj), "")
+        adj.challenge = challenge_clock(adj.clock, model, source)
+
+        # A deterministic override on the newest and least-defended path.
+        # Timeliness is not a matter of opinion here: Python already computed
+        # whether this window is open. If the counterparty argues the claim is
+        # out of time while the clock is demonstrably live, the argument is
+        # void -- and the advocate must never see it, because a weak advocate
+        # concedes to a confident falsehood.
+        if (
+            (adj.challenge.ground == "untimely" or adj.challenge.asserts_window_has_run)
+            and adj.clock.status is ClockStatus.LIVE
+        ):
+            emit(
+                "challenge.void",
+                f"counterparty argued the window has run; it closes "
+                f"{adj.clock.expiry_date}, {adj.clock.days_remaining} days away "
+                f"-- argument void",
+            )
+            adj.challenge = Challenge(
+                ground="none",
+                defeats_claim=False,
+                argument=(
+                    "The counterparty argued the claim was out of time. The "
+                    f"window closes {adj.clock.expiry_date}, "
+                    f"{adj.clock.days_remaining} days from now, so the argument "
+                    "is void on the computed record."
+                ),
+                authority="Computed from the trigger date and the governing window.",
+                confidence="weak",
+            )
         emit(
             "challenge.result",
             f"{'DEFEATS' if adj.challenge.defeats_claim else 'survives'} "
             f"({adj.challenge.confidence}): {adj.challenge.argument[:120]}",
         )
         emit("rebut", adj.clock.finding.right_summary)
-        adj.rebuttal = rebut_challenge(adj.clock, adj.challenge, model)
+        adj.rebuttal = rebut_challenge(adj.clock, adj.challenge, model, source)
         emit(
             "rebut.result",
             f"{'holds' if adj.rebuttal.survives else 'conceded'}: "

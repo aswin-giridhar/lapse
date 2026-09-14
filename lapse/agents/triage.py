@@ -105,6 +105,23 @@ def triage(
             disposition=Disposition.WITHHELD, reason="triage produced no decision"
         )
 
+    # Enforce the interruption budget. Stating it in the prompt is a request;
+    # this makes it an invariant. Where the model surfaced more than the budget
+    # allows, keep the most valuable and withhold the rest with a reason that
+    # says so honestly.
+    surfaced = [a for a in live if a.decision and a.decision.disposition is Disposition.SURFACED]
+    if len(surfaced) > budget:
+        surfaced.sort(key=lambda a: (a.clock.finding.value_usd or 0.0), reverse=True)
+        for a in surfaced[budget:]:
+            a.decision = Decision(
+                disposition=Disposition.WITHHELD,
+                reason=(
+                    f"Real and surviving, but outside today's interruption "
+                    f"budget of {budget}."
+                ),
+                revisit_on=a.clock.expiry_date,
+            )
+
     # Deterministic guard on the join. The model decides what deserves
     # attention; it does not get to let a valuable right expire this week.
     for a in live:
